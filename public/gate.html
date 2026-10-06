@@ -658,6 +658,7 @@
 
             const studentName = isAlert ? '⚠️ COVERED / UNKNOWN FACE' : (log.name || log.student_name || `Student (${log.roll_number || log.student_id || 'N/A'})`);
             
+            // Format UTC/ISO timestamp to local browser timezone (e.g. 10/7/2026, 3:24:04 AM)
             let rawTime = log.log_time ? String(log.log_time).trim() : '';
             if (rawTime && !rawTime.includes('Z') && !rawTime.includes('+') && !rawTime.includes('GMT')) {
               rawTime = rawTime.replace(' ', 'T') + 'Z';
