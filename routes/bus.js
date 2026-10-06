@@ -3,7 +3,7 @@ const router = express.Router();
 const { dbQuery, dbGet, dbRun } = require('../db/database');
 const { dispatchBusSMSNotification } = require('./notifications');
 
-// POST /api/bus/board - Camera entry boarding detection
+// POST /api/bus/board - Camera entry boarding detection (with automated fee status & anti-spoof validation)
 router.post('/board', async (req, res) => {
   try {
     const { student_id, roll_number, bus_id = 1, route_id = 1, face_confidence = 98.5, photo_url = '', lat, lng } = req.body;
