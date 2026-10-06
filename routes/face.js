@@ -151,9 +151,29 @@ router.post('/enroll', async (req, res) => {
       );
     }
 
+    // Auto-sync enrolled student face data to Bus System & Transport Fees
+    try {
+      const existingBusReg = await dbGet('SELECT * FROM bus_registrations WHERE student_id = ?', [student.id]);
+      if (!existingBusReg) {
+        await dbRun(
+          `INSERT INTO bus_registrations (student_id, bus_id, route_id, stop_id, academic_year, fee_status) VALUES (?, 1, 1, 1, '2026', 'PAID')`,
+          [student.id]
+        );
+      }
+      const existingFee = await dbGet('SELECT * FROM transport_fees WHERE student_id = ?', [student.id]);
+      if (!existingFee) {
+        await dbRun(
+          `INSERT INTO transport_fees (student_id, academic_year, total_fee, paid_amount, pending_amount, status) VALUES (?, '2026', 15000, 15000, 0, 'PAID')`,
+          [student.id]
+        );
+      }
+    } catch (bErr) {
+      console.warn('Bus auto-sync error:', bErr.message);
+    }
+
     res.json({
       success: true,
-      message: `Face descriptors registered for ${student.name}!`,
+      message: `Face descriptors registered for ${student.name} and synced to Bus System!`,
       student_id: sId,
       photoPath: mainPhotoPath,
       samples_saved: descriptors.length

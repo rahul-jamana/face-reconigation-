@@ -440,6 +440,26 @@ async function initDatabase() {
           );
         }
 
+        // Auto-sync all existing students in database to bus_registrations & transport_fees
+        const allStudents = await dbQuery('SELECT * FROM students');
+        for (const stu of allStudents) {
+          const hasReg = await dbGet('SELECT * FROM bus_registrations WHERE student_id = ?', [stu.id]);
+          if (!hasReg) {
+            await dbRun(
+              `INSERT INTO bus_registrations (student_id, bus_id, route_id, stop_id, academic_year, fee_status) VALUES (?, 1, 1, 1, '2026', 'PAID')`,
+              [stu.id]
+            );
+          }
+          const hasFee = await dbGet('SELECT * FROM transport_fees WHERE student_id = ?', [stu.id]);
+          if (!hasFee) {
+            await dbRun(
+              `INSERT INTO transport_fees (student_id, academic_year, total_fee, paid_amount, pending_amount, status) VALUES (?, '2026', 15000, 15000, 0, 'PAID')`,
+              [stu.id]
+            );
+          }
+        }
+
+
 
         // 3. Hostel Curfew & In/Out Configuration Table
         await dbRun(`
