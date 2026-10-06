@@ -55,7 +55,7 @@ window.switchTab = function(tabId) {
     }
   });
 
-  // Fallback: If no tab view matched, restore view-dashboard
+  // Fallback: If no tab view matched target ID, safely restore view-dashboard to prevent blank main content
   if (!matchedView && views.length > 0) {
     const dashView = document.getElementById('view-dashboard');
     if (dashView) dashView.classList.add('active');
