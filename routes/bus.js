@@ -225,7 +225,7 @@ router.post('/arrive-college', async (req, res) => {
   }
 });
 
-// POST /api/bus/leave-college - College Departure (Feature 3)
+// POST /api/bus/leave-college - Trigger Evening Campus Departure SMS Notification (5:00 PM)
 router.post('/leave-college', async (req, res) => {
   try {
     const { student_id, roll_number, bus_id = 1 } = req.body;
