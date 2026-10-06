@@ -658,7 +658,11 @@
 
             const studentName = isAlert ? '⚠️ COVERED / UNKNOWN FACE' : (log.name || log.student_name || `Student (${log.roll_number || log.student_id || 'N/A'})`);
             
-            let timeStr = log.log_time ? (log.log_time.includes('Z') || log.log_time.includes('+') ? new Date(log.log_time).toLocaleString() : new Date(log.log_time.replace(' ', 'T')).toLocaleString()) : new Date().toLocaleString();
+            let rawTime = log.log_time ? String(log.log_time).trim() : '';
+            if (rawTime && !rawTime.includes('Z') && !rawTime.includes('+') && !rawTime.includes('GMT')) {
+              rawTime = rawTime.replace(' ', 'T') + 'Z';
+            }
+            let timeStr = rawTime ? new Date(rawTime).toLocaleString() : new Date().toLocaleString();
             if (timeStr === 'Invalid Date') timeStr = log.log_time || new Date().toLocaleString();
 
             return `

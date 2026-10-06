@@ -92,10 +92,11 @@ router.post('/entry', async (req, res) => {
       );
     }
 
-    // Insert Entry Log with new columns and local timestamp
+    // Insert Entry Log with new columns and ISO timestamp
+    const currentIsoTime = new Date().toISOString();
     const logResult = await dbRun(
-      `INSERT INTO gate_entry_exit_logs (student_id, roll_number, log_type, camera_id, gate_name, log_time, face_matched, face_confidence, anti_spoof_passed, alert_type, photo_url, notes, late_minutes, is_late, is_missing, parent_notified) VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [student.student_id, student.roll_number, 'ENTRY', 'CAMERA_1_ENTRY', gate, 1, conf, anti_spoof_passed ? 1 : 0, alertType, photoPath, alertMsg, lateMins, isLate, 0, 1]
+      `INSERT INTO gate_entry_exit_logs (student_id, roll_number, log_type, camera_id, gate_name, log_time, face_matched, face_confidence, anti_spoof_passed, alert_type, photo_url, notes, late_minutes, is_late, is_missing, parent_notified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [student.student_id, student.roll_number, 'ENTRY', 'CAMERA_1_ENTRY', gate, currentIsoTime, 1, conf, anti_spoof_passed ? 1 : 0, alertType, photoPath, alertMsg, lateMins, isLate, 0, 1]
     );
 
     // Also mark main attendance if not marked today
@@ -212,9 +213,10 @@ router.post('/exit', async (req, res) => {
       alertMsg = 'Early Exit before 4:00 PM (Check Gate Pass)';
     }
 
+    const currentIsoTime = new Date().toISOString();
     const logResult = await dbRun(
-      `INSERT INTO gate_entry_exit_logs (student_id, roll_number, log_type, camera_id, gate_name, log_time, face_matched, face_confidence, anti_spoof_passed, alert_type, photo_url, notes, parent_notified) VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?, ?)`,
-      [student.student_id, student.roll_number, 'EXIT', 'CAMERA_2_EXIT', gate, 1, conf, anti_spoof_passed ? 1 : 0, alertType, photoPath, alertMsg, 1]
+      `INSERT INTO gate_entry_exit_logs (student_id, roll_number, log_type, camera_id, gate_name, log_time, face_matched, face_confidence, anti_spoof_passed, alert_type, photo_url, notes, parent_notified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [student.student_id, student.roll_number, 'EXIT', 'CAMERA_2_EXIT', gate, currentIsoTime, 1, conf, anti_spoof_passed ? 1 : 0, alertType, photoPath, alertMsg, 1]
     );
 
     // Dispatch Parent Notification for Exit
