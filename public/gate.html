@@ -889,7 +889,7 @@
               let matchConfidence = '95.0';
               let isCoveredFace = false;
 
-              // Check 1: Covered Face / Mask / Hand / Landmark Geometry Verification
+              // Check 1: 3D Facial Landmark Geometry Ratio Verification (Nose-Tip to Mouth Distance Ratio)
               const points = landmarks ? (landmarks.positions || []) : [];
               if (!points || points.length < 68) {
                 isCoveredFace = true;
