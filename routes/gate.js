@@ -255,7 +255,7 @@ router.post('/exit', async (req, res) => {
   }
 });
 
-// GET /api/gate/logs - Get recent gate logs
+// GET /api/gate/logs - Get recent gate logs (strictly joined on student_id to prevent duplicate roll number rows)
 router.get('/logs', async (req, res) => {
   try {
     const logs = await dbQuery(`
