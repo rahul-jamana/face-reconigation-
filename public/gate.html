@@ -804,57 +804,66 @@
 
       if (isModelLoaded && window.faceapi) {
         try {
-          const detection = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.35 }))
+          const detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.25 }))
             .withFaceLandmarks()
-            .withFaceDescriptor();
+            .withFaceDescriptors();
 
-          if (detection) {
-            const box = detection.detection.box;
-            const landmarks = detection.landmarks;
-            const liveVector = Array.from(detection.descriptor);
+          if (detections && detections.length > 0) {
+            for (const detection of detections) {
+              const box = detection.detection.box;
+              const landmarks = detection.landmarks;
+              const liveVector = Array.from(detection.descriptor);
 
-            // Check if face landmarks (nose/mouth/jaw) are missing or obscured
-            const points = landmarks.positions || [];
-            if (points.length < 68) {
-              isFaceHiddenOrUnknown = true;
-            }
+              let matchedStudent = null;
+              let matchConfidence = 95.0;
+              let isSingleFaceCovered = false;
 
-            // Compute distance against enrolled descriptors
-            let minDistance = Infinity;
-            for (const item of enrolledDescriptorsList) {
-              const descriptors = item.descriptors || [];
-              for (const desc of descriptors) {
-                if (Array.isArray(desc) && desc.length === 128) {
-                  const dist = faceapi.euclideanDistance(liveVector, desc);
-                  if (dist < minDistance) {
-                    minDistance = dist;
-                    matchedStudent = item;
+              // Check if face landmarks (nose/mouth/jaw) are missing or obscured
+              const points = landmarks ? (landmarks.positions || []) : [];
+              if (points.length < 68) {
+                isSingleFaceCovered = true;
+              }
+
+              // Compute distance against enrolled descriptors
+              let minDistance = Infinity;
+              for (const item of enrolledDescriptorsList) {
+                const descriptors = item.descriptors || [];
+                for (const desc of descriptors) {
+                  if (Array.isArray(desc) && desc.length === 128) {
+                    const dist = faceapi.euclideanDistance(liveVector, desc);
+                    if (dist < minDistance) {
+                      minDistance = dist;
+                      matchedStudent = item;
+                    }
                   }
                 }
               }
-            }
 
-            if (!isFaceHiddenOrUnknown && minDistance < 0.58 && matchedStudent) {
-              matchConfidence = Math.min(99.9, (1 - minDistance) * 100).toFixed(1);
-              ctx.lineWidth = 4;
-              ctx.strokeStyle = type === 'ENTRY' ? '#10b981' : '#ef4444';
-              ctx.strokeRect(box.x, box.y, box.width, box.height);
+              if (!isSingleFaceCovered && minDistance < 0.58 && matchedStudent) {
+                matchConfidence = Math.min(99.9, (1 - minDistance) * 100).toFixed(1);
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = type === 'ENTRY' ? '#10b981' : '#ef4444';
+                ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-              ctx.fillStyle = type === 'ENTRY' ? '#10b981' : '#ef4444';
-              ctx.fillRect(box.x, box.y - 30, Math.max(180, box.width), 30);
-              ctx.fillStyle = '#ffffff';
-              ctx.font = 'bold 14px Inter, sans-serif';
-              ctx.fillText(`✔ ${matchedStudent.name} (${matchConfidence}%)`, box.x + 8, box.y - 10);
-            } else {
-              isFaceHiddenOrUnknown = true;
-              ctx.lineWidth = 4;
-              ctx.strokeStyle = '#ef4444';
-              ctx.strokeRect(box.x, box.y, box.width, box.height);
-              ctx.fillStyle = '#ef4444';
-              ctx.fillRect(box.x, box.y - 30, Math.max(220, box.width), 30);
-              ctx.fillStyle = '#ffffff';
-              ctx.font = 'bold 14px Inter, sans-serif';
-              ctx.fillText(`❌ UNKNOWN / COVERED FACE`, box.x + 8, box.y - 10);
+                ctx.fillStyle = type === 'ENTRY' ? '#10b981' : '#ef4444';
+                ctx.fillRect(box.x, box.y - 30, Math.max(180, box.width), 30);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 14px Inter, sans-serif';
+                ctx.fillText(`✔ ${matchedStudent.name} (${matchConfidence}%)`, box.x + 8, box.y - 10);
+
+                // Auto-trigger gate log for recognized student
+                triggerStudentGateLog(matchedStudent, type, matchConfidence);
+              } else {
+                isFaceHiddenOrUnknown = true;
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#ef4444';
+                ctx.strokeRect(box.x, box.y, box.width, box.height);
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(box.x, box.y - 30, Math.max(220, box.width), 30);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 14px Inter, sans-serif';
+                ctx.fillText(`❌ UNKNOWN / COVERED FACE`, box.x + 8, box.y - 10);
+              }
             }
           }
         } catch (e) {}
