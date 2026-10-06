@@ -224,7 +224,7 @@ class FaceAIEngine {
           await faceapi.nets.faceRecognitionNet.loadFromUri(FALLBACK_URL);
         }
         this.isModelLoaded = true;
-        console.log('[FaceAI] Pre-trained neural models loaded successfully!');
+        console.log('[FaceAI] Pre-trained neural models loaded successfully! (SSD MobileNet tuned to 0.05 minConfidence for 7+ multi-face tracking)');
       }
     } catch (err) {
       console.warn('[FaceAI] Model load info:', err.message);
