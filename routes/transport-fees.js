@@ -6,11 +6,11 @@ const { dbQuery, dbGet, dbRun } = require('../db/database');
 router.get('/:student_id', async (req, res) => {
   try {
     const studentId = req.params.student_id;
-    let fee = await dbGet('SELECT tf.*, s.name as student_name, s.roll_number FROM transport_fees tf JOIN students s ON tf.student_id = s.id WHERE tf.student_id = ? OR s.roll_number = ?', [studentId, studentId]);
+    let fee = await dbGet('SELECT tf.*, s.name as student_name, s.roll_number FROM transport_fees tf JOIN students s ON tf.student_id = s.id WHERE tf.student_id = ? OR s.roll_number = ? OR s.student_id = ? OR s.id = ?', [studentId, studentId, studentId, studentId]);
 
     if (!fee) {
-      // Check if student exists
-      const student = await dbGet('SELECT * FROM students WHERE id = ? OR roll_number = ?', [studentId, studentId]);
+      // Check if student exists by ID, roll_number, or student_id string
+      const student = await dbGet('SELECT * FROM students WHERE id = ? OR roll_number = ? OR student_id = ?', [studentId, studentId, studentId]);
       if (student) {
         // Create default record
         await dbRun(
