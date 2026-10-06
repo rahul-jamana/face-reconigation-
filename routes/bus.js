@@ -419,7 +419,7 @@ router.get('/reports/daily', async (req, res) => {
   }
 });
 
-// GET /api/bus/reports/export/csv
+// GET /api/bus/reports/export/csv - Download Daily Transport Boarding Register CSV File
 router.get('/reports/export/csv', async (req, res) => {
   try {
     const logs = await dbQuery(
