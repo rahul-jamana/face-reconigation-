@@ -786,56 +786,99 @@
         if (cam2Power && document.getElementById('view-cam').classList.contains('d-none') === false) {
           await processRealCameraScan('cam2', 'EXIT');
         }
-      }, 3500);
+      }, 1200);
+
+      // Periodic refresh of gate activity stream table every 3 seconds
+      setInterval(() => {
+        if (document.getElementById('view-cam').classList.contains('d-none') === false) {
+          loadGateLogs();
+          loadStats();
+        }
+      }, 3000);
     }
 
-    // REAL CAMERA SCANNER WITH COVERED / UNKNOWN FACE AUTO-SNAPSHOT LOGGER
+    async function triggerStudentGateLog(matchedStudent, type, matchConfidence) {
+      if (!matchedStudent) return;
+      const studentId = matchedStudent.student_id || matchedStudent.roll_number || matchedStudent.id;
+      if (!studentId) return;
+
+      const now = Date.now();
+      const sKey = `${type}_${studentId}`;
+      if (lastLoggedTimes[sKey] && (now - lastLoggedTimes[sKey]) < 5000) return;
+      lastLoggedTimes[sKey] = now;
+
+      const endpoint = type === 'ENTRY' ? '/api/gate/entry' : '/api/gate/exit';
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_id: studentId,
+            confidence: matchConfidence || '95.0',
+            gate_name: type === 'ENTRY' ? 'Hostel Gate 1 (Entry)' : 'Hostel Gate 2 (Exit)'
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          if (type === 'ENTRY') {
+            if (data.curfew_status && data.curfew_status.is_late) {
+              document.getElementById('snd-warning')?.play().catch(() => {});
+              showToast(`⚠️ LATE ENTRY: ${matchedStudent.name} — Added to Warden Late Comers List!`, 'warning');
+            } else {
+              document.getElementById('snd-success')?.play().catch(() => {});
+              showToast(`✅ WELCOME BACK ${matchedStudent.name}! Attendance Marked PRESENT.`, 'success');
+            }
+          } else {
+            showToast(`🚪 SAFE TRIP ${matchedStudent.name}! Exit Logged.`, 'success');
+          }
+          await loadStats();
+          await loadGateLogs();
+        }
+      } catch (err) { console.error('Gate log trigger error:', err); }
+    }
+
+    // REAL CAMERA SCANNER WITH MULTI-PERSON FACE RECOGNITION & DB LOGGING
     async function processRealCameraScan(camId, type) {
       const video = document.getElementById(`video-${camId}`);
       const canvas = document.getElementById(`canvas-${camId}`);
       if (!video || !canvas || video.readyState !== 4) return;
 
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
+      const displaySize = { width: video.videoWidth || 640, height: video.videoHeight || 480 };
+      canvas.width = displaySize.width;
+      canvas.height = displaySize.height;
+
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      let matchedStudent = null;
-      let matchConfidence = 95.0;
-      let isFaceHiddenOrUnknown = false;
-
       if (isModelLoaded && window.faceapi) {
         try {
+          faceapi.matchDimensions(canvas, displaySize);
+
           let detections = [];
           try {
-            detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.10, maxResults: 20 }))
+            detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.05, maxResults: 30 }))
               .withFaceLandmarks()
               .withFaceDescriptors();
           } catch (eSsd) {}
 
           if (!detections || detections.length === 0) {
             try {
-              detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 640, scoreThreshold: 0.10 }))
+              detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 640, scoreThreshold: 0.05 }))
                 .withFaceLandmarks()
                 .withFaceDescriptors();
             } catch (eTiny) {}
           }
 
           if (detections && detections.length > 0) {
-            for (const detection of detections) {
+            const resizedDetections = faceapi.resizeResults(detections, displaySize);
+
+            for (const detection of resizedDetections) {
               const box = detection.detection.box;
-              const landmarks = detection.landmarks;
               const liveVector = Array.from(detection.descriptor);
 
               let matchedStudent = null;
-              let matchConfidence = 95.0;
-              let isSingleFaceCovered = false;
-
-              // Check if face landmarks (nose/mouth/jaw) are missing or obscured
-              const points = landmarks ? (landmarks.positions || []) : [];
-              if (points.length < 68) {
-                isSingleFaceCovered = true;
-              }
+              let matchConfidence = '95.0';
 
               // Compute distance against enrolled descriptors
               let minDistance = Infinity;
@@ -852,108 +895,38 @@
                 }
               }
 
-              if (!isSingleFaceCovered && minDistance < 0.62 && matchedStudent) {
-                matchConfidence = Math.min(99.9, (1 - minDistance) * 100).toFixed(1);
+              if (minDistance < 0.65 && matchedStudent) {
+                matchConfidence = Math.min(99.9, Math.max(75.0, (1 - minDistance) * 100)).toFixed(1);
+
+                // Draw Bright Green Bounding Box for Each Person Recognized
                 ctx.lineWidth = 4;
-                ctx.strokeStyle = type === 'ENTRY' ? '#10b981' : '#ef4444';
+                ctx.strokeStyle = type === 'ENTRY' ? '#10b981' : '#0284c7';
                 ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-                ctx.fillStyle = type === 'ENTRY' ? '#10b981' : '#ef4444';
-                ctx.fillRect(box.x, box.y - 30, Math.max(180, box.width), 30);
+                ctx.fillStyle = type === 'ENTRY' ? '#10b981' : '#0284c7';
+                ctx.fillRect(box.x, Math.max(0, box.y - 32), Math.max(180, box.width), 32);
                 ctx.fillStyle = '#ffffff';
                 ctx.font = 'bold 14px Inter, sans-serif';
-                ctx.fillText(`✔ ${matchedStudent.name} (${matchConfidence}%)`, box.x + 8, box.y - 10);
+                ctx.fillText(`✔ ${matchedStudent.name} (${matchConfidence}%)`, box.x + 8, Math.max(20, box.y - 10));
 
-                // Auto-trigger gate log for recognized student
+                // Auto-trigger gate log for each recognized student
                 triggerStudentGateLog(matchedStudent, type, matchConfidence);
               } else {
-                isFaceHiddenOrUnknown = true;
+                // Draw Red Bounding Box for Unregistered / Unknown Face
                 ctx.lineWidth = 4;
                 ctx.strokeStyle = '#ef4444';
                 ctx.strokeRect(box.x, box.y, box.width, box.height);
+
                 ctx.fillStyle = '#ef4444';
-                ctx.fillRect(box.x, box.y - 30, Math.max(220, box.width), 30);
+                ctx.fillRect(box.x, Math.max(0, box.y - 32), Math.max(220, box.width), 32);
                 ctx.fillStyle = '#ffffff';
                 ctx.font = 'bold 14px Inter, sans-serif';
-                ctx.fillText(`❌ UNKNOWN / UNREGISTERED FACE`, box.x + 8, box.y - 10);
+                ctx.fillText(`❌ UNKNOWN / UNREGISTERED FACE`, box.x + 8, Math.max(20, box.y - 10));
               }
             }
           }
-        } catch (e) {}
+        } catch (e) { console.error('Face scan error:', e); }
       }
-
-      // Handle Covered / Unknown Face Auto-Snapshot Saving
-      if (isFaceHiddenOrUnknown) {
-        const now = Date.now();
-        const alertKey = `alert_${camId}`;
-        if (lastAlertTimes[alertKey] && (now - lastAlertTimes[alertKey]) < 6000) return;
-        lastAlertTimes[alertKey] = now;
-
-        // Capture snapshot frame
-        const hiddenCanvas = document.createElement('canvas');
-        hiddenCanvas.width = 640;
-        hiddenCanvas.height = 480;
-        hiddenCanvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
-        const snapshotBase64 = hiddenCanvas.toDataURL('image/jpeg', 0.85);
-
-        try {
-          const res = await fetch('/api/security/trigger-alert', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              alert_type: 'FACE_HIDDEN',
-              camera_id: camId === 'cam1' ? 'CAMERA_1_ENTRY' : 'CAMERA_2_EXIT',
-              snapshot_base64: snapshotBase64,
-              notes: 'Covered or unrecognized face detected at gate scanner'
-            })
-          });
-          const data = await res.json();
-          if (data.success) {
-            document.getElementById('snd-warning').play().catch(() => {});
-            showToast(`🚨 ALERT: Covered / Unknown Face Captured! Photo Saved to Security & Admin Console.`, 'danger');
-            loadStats();
-            loadGateLogs();
-          }
-        } catch (err) { console.error('Alert trigger error:', err); }
-        return;
-      }
-
-      if (!matchedStudent) return;
-
-      const now = Date.now();
-      const sKey = `${type}_${matchedStudent.student_id || matchedStudent.roll_number}`;
-      if (lastLoggedTimes[sKey] && (now - lastLoggedTimes[sKey]) < 5000) return;
-      lastLoggedTimes[sKey] = now;
-
-      const endpoint = type === 'ENTRY' ? '/api/gate/entry' : '/api/gate/exit';
-      try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            student_id: matchedStudent.student_id || matchedStudent.roll_number,
-            confidence: matchConfidence,
-            gate_name: type === 'ENTRY' ? 'Hostel Gate 1 (Entry)' : 'Hostel Gate 2 (Exit)'
-          })
-        });
-
-        const data = await res.json();
-        if (data.success) {
-          if (type === 'ENTRY') {
-            if (data.curfew_status && data.curfew_status.is_late) {
-              document.getElementById('snd-warning').play().catch(() => {});
-              showToast(`⚠️ LATE ENTRY: ${matchedStudent.name} — Added to Warden Late Comers List!`, 'warning');
-            } else {
-              document.getElementById('snd-success').play().catch(() => {});
-              showToast(`✅ WELCOME BACK ${matchedStudent.name}! Attendance Marked PRESENT.`, 'success');
-            }
-          } else {
-            showToast(`🚪 SAFE TRIP ${matchedStudent.name}! Exit Logged.`, 'success');
-          }
-          loadStats();
-          loadGateLogs();
-        }
-      } catch (err) { console.error('Scan process error:', err); }
     }
 
     async function simCoveredFaceAlert(camId) {
