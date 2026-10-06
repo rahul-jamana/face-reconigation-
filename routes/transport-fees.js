@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { dbQuery, dbGet, dbRun } = require('../db/database');
 
-// GET /api/transport-fees/:student_id - Fee status check (Feature 7)
+// GET /api/transport-fees/:student_id - Check Transport Fee Payment Status & Unpaid Alerts
 router.get('/:student_id', async (req, res) => {
   try {
     const studentId = req.params.student_id;
