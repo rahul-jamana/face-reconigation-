@@ -919,8 +919,8 @@
                 }
               }
 
-              // Strict threshold for genuine authentic face match
-              const isAuthenticMatch = !isCoveredFace && minDistance < 0.48 && matchedStudent;
+              // Strict 0.48 Euclidean distance threshold for genuine authentic face matching
+              const isAuthenticMatch = !isCoveredFace && minDistance <= 0.48 && matchedStudent;
 
               if (isAuthenticMatch) {
                 matchConfidence = Math.min(99.9, Math.max(82.0, (1 - minDistance) * 100)).toFixed(1);
