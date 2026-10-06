@@ -50,7 +50,7 @@ router.post('/acknowledge/:id', async (req, res) => {
   }
 });
 
-// POST /api/security/trigger-alert - Log Covered/Unknown Face or Security Incident with Photo
+// POST /api/security/trigger-alert - Auto-capture high-res snapshot frame on Covered/Unknown Face alert
 router.post('/trigger-alert', async (req, res) => {
   try {
     const { alert_type, camera_id, notes, image_path, snapshot_base64, student_id } = req.body;
