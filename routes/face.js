@@ -151,7 +151,7 @@ router.post('/enroll', async (req, res) => {
       );
     }
 
-    // Auto-sync enrolled student face data to Bus System & Transport Fees
+    // Auto-sync enrolled student 30-frame face data to Bus System & Transport Fee Records
     try {
       const existingBusReg = await dbGet('SELECT * FROM bus_registrations WHERE student_id = ?', [student.id]);
       if (!existingBusReg) {
