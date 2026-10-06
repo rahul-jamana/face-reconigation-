@@ -875,12 +875,20 @@
 
             for (const detection of resizedDetections) {
               const box = detection.detection.box;
+              const landmarks = detection.landmarks;
               const liveVector = Array.from(detection.descriptor);
 
               let matchedStudent = null;
               let matchConfidence = '95.0';
+              let isCoveredFace = false;
 
-              // Compute distance against enrolled descriptors
+              // Check 1: Covered Face / Mask / Hand Detection
+              const points = landmarks ? (landmarks.positions || []) : [];
+              if (points.length < 68) {
+                isCoveredFace = true;
+              }
+
+              // Check 2: Compute Euclidean Distance against enrolled descriptors
               let minDistance = Infinity;
               for (const item of enrolledDescriptorsList) {
                 const descriptors = item.descriptors || [];
@@ -895,10 +903,10 @@
                 }
               }
 
-              if (minDistance < 0.65 && matchedStudent) {
+              if (!isCoveredFace && minDistance < 0.65 && matchedStudent) {
                 matchConfidence = Math.min(99.9, Math.max(75.0, (1 - minDistance) * 100)).toFixed(1);
 
-                // Draw Bright Green Bounding Box for Each Person Recognized
+                // Draw Bright Green Bounding Box for Authorized Student
                 ctx.lineWidth = 4;
                 ctx.strokeStyle = type === 'ENTRY' ? '#10b981' : '#0284c7';
                 ctx.strokeRect(box.x, box.y, box.width, box.height);
@@ -912,21 +920,62 @@
                 // Auto-trigger gate log for each recognized student
                 triggerStudentGateLog(matchedStudent, type, matchConfidence);
               } else {
-                // Draw Red Bounding Box for Unregistered / Unknown Face
+                // Determine bypass alert classification
+                const alertLabel = isCoveredFace ? `⚠️ COVERED FACE / MASK DETECTED` : `❌ UNKNOWN / TAILGATING PERSON`;
+                const alertType = isCoveredFace ? 'FACE_HIDDEN' : 'UNKNOWN';
+
+                // Draw Red Bounding Box for Security Violation
                 ctx.lineWidth = 4;
                 ctx.strokeStyle = '#ef4444';
                 ctx.strokeRect(box.x, box.y, box.width, box.height);
 
                 ctx.fillStyle = '#ef4444';
-                ctx.fillRect(box.x, Math.max(0, box.y - 32), Math.max(220, box.width), 32);
+                ctx.fillRect(box.x, Math.max(0, box.y - 32), Math.max(240, box.width), 32);
                 ctx.fillStyle = '#ffffff';
                 ctx.font = 'bold 14px Inter, sans-serif';
-                ctx.fillText(`❌ UNKNOWN / UNREGISTERED FACE`, box.x + 8, Math.max(20, box.y - 10));
+                ctx.fillText(alertLabel, box.x + 8, Math.max(20, box.y - 10));
+
+                // Auto-capture Security Snapshot & Trigger Alert (Throttled once per 6 sec)
+                const now = Date.now();
+                const alertKey = `alert_${camId}_${alertType}`;
+                if (!lastAlertTimes[alertKey] || (now - lastAlertTimes[alertKey]) > 6000) {
+                  lastAlertTimes[alertKey] = now;
+                  triggerSecuritySnapshotAlert(camId, video, alertType, alertLabel);
+                }
               }
             }
           }
         } catch (e) { console.error('Face scan error:', e); }
       }
+    }
+
+    async function triggerSecuritySnapshotAlert(camId, videoElem, alertType, notes) {
+      try {
+        const hiddenCanvas = document.createElement('canvas');
+        hiddenCanvas.width = 640;
+        hiddenCanvas.height = 480;
+        hiddenCanvas.getContext('2d').drawImage(videoElem, 0, 0, 640, 480);
+        const snapshotBase64 = hiddenCanvas.toDataURL('image/jpeg', 0.85);
+
+        const res = await fetch('/api/security/trigger-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            alert_type: alertType,
+            camera_id: camId === 'cam1' ? 'CAMERA_1_ENTRY' : 'CAMERA_2_EXIT',
+            snapshot_base64: snapshotBase64,
+            notes: notes || 'Security bypass attempt detected'
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('snd-warning')?.play().catch(() => {});
+          showToast(`🚨 SECURITY ALERT: ${notes} Captured! Snapshot saved to Security Desk.`, 'danger');
+          await loadStats();
+          await loadGateLogs();
+        }
+      } catch (e) {}
     }
 
     async function simCoveredFaceAlert(camId) {
