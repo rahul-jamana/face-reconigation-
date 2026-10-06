@@ -1,7 +1,7 @@
 {
   "name": "face-detection-attendance-system",
-  "version": "1.0.0",
-  "description": "AI-Powered Face Detection & Recognition Attendance System",
+  "version": "2.5.0",
+  "description": "VisioFace AI — 7+ Multi-Face Scanner, BEC Transport Fleet & Anti-Bypass Attendance System",
   "main": "index.js",
   "engines": {
     "node": "20"
