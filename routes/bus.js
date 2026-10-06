@@ -254,7 +254,7 @@ router.post('/leave-college', async (req, res) => {
   }
 });
 
-// POST /api/bus/arrive-stop - Home Stop Arrival (Feature 5)
+// POST /api/bus/arrive-stop - Trigger Home Stop Arrival SMS Notification (Location Stop Drop)
 router.post('/arrive-stop', async (req, res) => {
   try {
     const { student_id, roll_number, stop_name = 'Pitapalli Square' } = req.body;
