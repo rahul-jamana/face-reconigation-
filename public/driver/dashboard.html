@@ -21,9 +21,25 @@
   </nav>
 
   <div class="container py-3">
-    <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 text-center bg-primary text-white">
-      <h5 class="fw-bold mb-1"><i class="fa-solid fa-camera me-2"></i>Bus Door AI Camera Simulator</h5>
-      <span class="small opacity-75">Scans student faces upon boarding/deboarding</span>
+    <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-primary text-white">
+      <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <h5 class="fw-bold mb-0"><i class="fa-solid fa-camera me-2"></i>Bus #4 Door AI Camera (Live Feed)</h5>
+        <div class="d-flex align-items-center gap-2">
+          <select id="bus-cam-select" class="form-select form-select-sm text-dark bg-white" style="max-width:220px;" onchange="switchBusCamera(this.value)">
+            <option value="">Select Camera Device...</option>
+          </select>
+          <button class="btn btn-sm btn-light text-primary fw-bold" onclick="startBusCamera()"><i class="fa-solid fa-power-off me-1"></i>Start Cam</button>
+        </div>
+      </div>
+      <!-- Live Video Viewport Container -->
+      <div class="cam-box position-relative rounded-3 overflow-hidden bg-dark text-center my-2" style="height: 320px;">
+        <video id="bus-video" autoplay playsinline muted class="w-100 h-100" style="object-fit: cover;"></video>
+        <canvas id="bus-canvas" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events:none;"></canvas>
+        <div class="position-absolute top-0 start-0 m-3 px-3 py-1 bg-success text-white rounded-pill fw-bold small">
+          <i class="fa-solid fa-circle me-1" style="font-size:8px;"></i>AI FACE SCANNER ACTIVE
+        </div>
+      </div>
+      <span class="small opacity-75 text-center d-block">Scans student faces automatically as they step into the bus door</span>
     </div>
 
     <!-- Alert Banner -->
@@ -75,6 +91,51 @@
   </div>
 
   <script>
+    let currentBusStream = null;
+
+    async function populateBusCameras() {
+      try {
+        const select = document.getElementById('bus-cam-select');
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        select.innerHTML = '<option value="">Select Camera Device...</option>';
+        videoDevices.forEach((dev, idx) => {
+          const opt = document.createElement('option');
+          opt.value = dev.deviceId;
+          opt.innerText = dev.label || `Camera Device #${idx + 1}`;
+          select.appendChild(opt);
+        });
+      } catch (e) {}
+    }
+
+    async function startBusCamera(deviceId = null) {
+      try {
+        if (currentBusStream) {
+          currentBusStream.getTracks().forEach(t => t.stop());
+        }
+        const constraints = {
+          video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'user' },
+          audio: false
+        };
+        currentBusStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const video = document.getElementById('bus-video');
+        video.srcObject = currentBusStream;
+        await video.play();
+        populateBusCameras();
+      } catch (e) {
+        console.warn('Camera access error:', e.message);
+      }
+    }
+
+    function switchBusCamera(deviceId) {
+      if (deviceId) startBusCamera(deviceId);
+    }
+
+    // Auto start on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      startBusCamera();
+    });
+
     function showAlert(msg, isSuccess, alertType) {
       const box = document.getElementById('alert-box');
       box.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-warning');
