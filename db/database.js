@@ -1,3 +1,5 @@
+// VisioFace AI — Real-Time SQLite Database Persistence Layer
+// Handles Hostel Gate Scans, Multi-Pose Embeddings, Bus Telemetry, and Parent Notifications
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const bcrypt = require('bcryptjs');
