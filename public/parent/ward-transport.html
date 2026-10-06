@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ward Transport Status — BEC Parent Portal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    body { background-color: #f0f4f9; font-family: 'Segoe UI', system-ui, sans-serif; }
+    .status-card { border-left: 5px solid #0d6efd; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .sms-bubble { background: #e7f1ff; border-radius: 12px; padding: 12px 16px; border-left: 4px solid #0d6efd; margin-bottom: 10px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-users me-2"></i>BEC Parent Portal</a>
+      <span class="navbar-text text-white">Ward Bus Monitor</span>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <div class="row g-4">
+      <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+          <div class="d-flex align-items-center mb-3">
+            <div class="bg-primary text-white rounded-circle p-3 me-3">
+              <i class="fa-solid fa-user-graduate fa-2x"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold mb-0">Munu Nial</h5>
+              <span class="text-muted small">Roll: BEC26081 • Computer Science</span>
+            </div>
+          </div>
+          <div class="status-card my-2">
+            <span class="text-muted small d-block">Current Transport Status</span>
+            <h4 class="fw-bold text-primary my-1" id="current-status"><i class="fa-solid fa-circle-check text-success me-2"></i>Boarded Return Bus #4</h4>
+            <span class="text-muted small">Route: Khordha • Destination: Pitapalli Square</span>
+          </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+          <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-comment-sms me-2"></i>Recent SMS Dispatches</h6>
+          <div id="sms-feed">
+            <div class="sms-bubble">
+              <strong class="d-block text-primary"><i class="fa-solid fa-bus me-1"></i>BEC Transport</strong>
+              <span>Your ward Munu Nial boarded return Bus #4 at 5:15 PM.<br><small class="text-muted">- BEC Transport</small></span>
+            </div>
+            <div class="sms-bubble">
+              <strong class="d-block text-primary"><i class="fa-solid fa-graduation-cap me-1"></i>BEC Transport</strong>
+              <span>Your ward Munu Nial reached college at 9:00 AM.<br><small class="text-muted">- BEC Transport</small></span>
+            </div>
+            <div class="sms-bubble">
+              <strong class="d-block text-primary"><i class="fa-solid fa-bus me-1"></i>BEC Transport</strong>
+              <span>Your ward Munu Nial boarded Bus #4 at 7:45 AM.<br>Route: Khordha<br><small class="text-muted">- BEC Transport</small></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+          <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-map-location-dot me-2"></i>Live Bus Telemetry & Route</h5>
+          <div class="p-4 bg-light rounded-3 text-center border">
+            <i class="fa-solid fa-bus-simple fa-3x text-primary mb-2"></i>
+            <h6 class="fw-bold">Bus #4 — Khordha Route</h6>
+            <p class="text-muted small mb-2">GPS Location: Near Pitapalli Square • ETA: 6:30 PM</p>
+            <div class="progress mb-3" style="height: 10px;">
+              <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 75%"></div>
+            </div>
+            <span class="badge bg-success py-2 px-3"><i class="fa-solid fa-satellite-dish me-1"></i>Live Signal Connected</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

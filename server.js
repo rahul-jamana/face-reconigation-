@@ -45,7 +45,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Static Asset Directories
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads/gate_logs', express.static(path.join(__dirname, 'uploads', 'gate_logs')));
+app.use('/uploads/daily_csv_logs', express.static(path.join(__dirname, 'uploads', 'daily_csv_logs')));
 
 // Routes
 const { router: authRoutes } = require('./routes/auth');
@@ -54,6 +55,11 @@ const faceRoutes = require('./routes/face');
 const attendanceRoutes = require('./routes/attendance');
 const reportRoutes = require('./routes/reports');
 const { router: notificationRoutes } = require('./routes/notifications');
+const gateRoutes = require('./routes/gate');
+const wardenRoutes = require('./routes/warden');
+const securityRoutes = require('./routes/security');
+const busRoutes = require('./routes/bus');
+const transportFeeRoutes = require('./routes/transport-fees');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
@@ -61,6 +67,34 @@ app.use('/api/face', faceRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/gate', gateRoutes);
+app.use('/api/warden', wardenRoutes);
+app.use('/api/security', securityRoutes);
+app.use('/api/bus', busRoutes);
+app.use('/api/transport-fees', transportFeeRoutes);
+
+// Explicit UI Page Routes for Clean URLs
+const uiRoutes = [
+  '/student/bus-pass',
+  '/student/bus-log',
+  '/parent/ward-transport',
+  '/warden/bus-live',
+  '/warden/bus-register',
+  '/admin/buses',
+  '/admin/bus-routes',
+  '/admin/bus-registrations',
+  '/admin/transport-fees',
+  '/admin/bus-reports',
+  '/driver/dashboard',
+  '/driver/student-list',
+  '/driver/boarding-log'
+];
+
+uiRoutes.forEach(route => {
+  app.get(route, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', `${route}.html`));
+  });
+});
 
 // Endpoint for Mobile QR Code Network URL
 app.get('/api/info', (req, res) => {
@@ -79,6 +113,7 @@ app.get('/api/info', (req, res) => {
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
 
 // Export app and initDatabase for serverless/Firebase Cloud Functions deployment
 module.exports = { app, initDatabase };

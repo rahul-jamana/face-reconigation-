@@ -264,7 +264,7 @@ router.put('/:student_id', async (req, res) => {
   }
 });
 
-// DELETE /api/students/:student_id - Delete student and their facial data
+// DELETE /api/students/:student_id - Delete student and their facial data across all tables
 router.delete('/:student_id', async (req, res) => {
   try {
     const studentId = req.params.student_id;
@@ -286,14 +286,98 @@ router.delete('/:student_id', async (req, res) => {
     }
 
     await dbRun('DELETE FROM students WHERE id = ?', [student.id]);
-    await dbRun('DELETE FROM face_embeddings WHERE student_id = ?', [student.student_id]);
-    await dbRun('DELETE FROM attendance WHERE student_id = ?', [student.student_id]);
+    await dbRun('DELETE FROM face_embeddings WHERE student_id = ? OR student_id = ?', [student.student_id, student.roll_number]);
+    await dbRun('DELETE FROM student_face_data WHERE student_id = ? OR roll_number = ?', [student.student_id, student.roll_number]);
+    await dbRun('DELETE FROM attendance WHERE student_id = ? OR student_id = ?', [student.student_id, student.roll_number]);
+    await dbRun('DELETE FROM gate_entry_exit_logs WHERE student_id = ? OR roll_number = ?', [student.student_id, student.roll_number]);
+    await dbRun('DELETE FROM security_alerts WHERE student_id = ? OR student_id = ?', [student.student_id, student.roll_number]);
 
-    res.json({ success: true, message: `Student ${student.name} deleted successfully` });
+    res.json({ success: true, message: `Student ${student.name} (${student.roll_number}) deleted successfully from all system tables!` });
   } catch (err) {
     console.error('Delete student error:', err);
-    res.status(500).json({ success: false, message: 'Failed to delete student' });
+    res.status(500).json({ success: false, message: 'Failed to delete student: ' + err.message });
+  }
+});
+
+// POST /api/students/bulk-delete - Delete multiple selected students
+router.post('/bulk-delete', async (req, res) => {
+  try {
+    const { student_ids } = req.body;
+    if (!Array.isArray(student_ids) || student_ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'No student IDs provided for deletion.' });
+    }
+
+    for (const sId of student_ids) {
+      await dbRun('DELETE FROM students WHERE student_id = ? OR roll_number = ?', [sId, sId]);
+      await dbRun('DELETE FROM face_embeddings WHERE student_id = ? OR student_id = ?', [sId, sId]);
+      await dbRun('DELETE FROM student_face_data WHERE student_id = ? OR roll_number = ?', [sId, sId]);
+      await dbRun('DELETE FROM attendance WHERE student_id = ? OR student_id = ?', [sId, sId]);
+      await dbRun('DELETE FROM gate_entry_exit_logs WHERE student_id = ? OR roll_number = ?', [sId, sId]);
+      await dbRun('DELETE FROM security_alerts WHERE student_id = ? OR student_id = ?', [sId, sId]);
+    }
+
+    res.json({ success: true, message: `Successfully deleted ${student_ids.length} student records and associated face data.` });
+  } catch (err) {
+    console.error('Bulk delete error:', err);
+    res.status(500).json({ success: false, message: 'Failed to execute bulk deletion' });
+  }
+});
+
+// DELETE /api/students/all/clear - Purge all student directory records
+router.delete('/all/clear', async (req, res) => {
+  try {
+    await dbRun('DELETE FROM students');
+    await dbRun('DELETE FROM face_embeddings');
+    await dbRun('DELETE FROM student_face_data');
+    res.json({ success: true, message: 'All student directory profiles and face embeddings deleted cleanly.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to clear all students' });
+  }
+});
+
+// GET /api/students/:id/gate-logs - My Gate Log section for Student Profile
+router.get('/:id/gate-logs', async (req, res) => {
+  try {
+    const sId = req.params.id;
+    const student = await dbGet('SELECT * FROM students WHERE student_id = ? OR roll_number = ?', [sId, sId]);
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student record not found' });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Query student's complete gate logs
+    const logs = await dbQuery(`
+      SELECT * FROM gate_entry_exit_logs 
+      WHERE (student_id = ? OR roll_number = ? OR student_id = ?)
+      ORDER BY id DESC LIMIT 100
+    `, [student.student_id, student.roll_number, student.roll_number]);
+
+    const todayEntries = logs.filter(l => l.log_type === 'ENTRY' && String(l.log_time).includes(today)).length;
+    const todayExits = logs.filter(l => l.log_type === 'EXIT' && String(l.log_time).includes(today)).length;
+    const totalLate = logs.filter(l => l.is_late === 1 || l.alert_type === 'LATE_ENTRY' || l.alert_type === 'VERY_LATE' || l.alert_type === 'CRITICAL').length;
+
+    res.json({
+      success: true,
+      student: {
+        student_id: student.student_id,
+        name: student.name,
+        roll_number: student.roll_number,
+        branch: student.branch
+      },
+      summary: {
+        todayEntries,
+        todayExits,
+        totalLateEntries: totalLate,
+        totalLogs: logs.length
+      },
+      logs
+    });
+  } catch (err) {
+    console.error('Error fetching student gate logs:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch student gate logs' });
   }
 });
 
 module.exports = router;
+

@@ -248,4 +248,92 @@ router.get('/export/csv', async (req, res) => {
   }
 });
 
+// GET /api/reports/specialized - Generate specialized reports (Daily Entry/Exit, Late Entry, Missing, Student-wise, Monthly, Unknown Person)
+router.get('/specialized', async (req, res) => {
+
+  try {
+    const { type, date, month, student_id, format } = req.query;
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    let title = 'Hostel Report';
+    let records = [];
+
+    if (type === 'daily_entry') {
+      title = `Daily Entry Register (${targetDate})`;
+      records = await dbQuery(`
+        SELECT g.*, s.name, s.branch, s.mobile
+        FROM gate_entry_exit_logs g
+        LEFT JOIN students s ON (g.student_id = s.student_id OR g.roll_number = s.roll_number)
+        WHERE g.log_type = 'ENTRY' AND date(g.log_time) = date(?)
+        ORDER BY g.id DESC
+      `, [targetDate]);
+    } else if (type === 'daily_exit') {
+      title = `Daily Exit Register (${targetDate})`;
+      records = await dbQuery(`
+        SELECT g.*, s.name, s.branch, s.mobile
+        FROM gate_entry_exit_logs g
+        LEFT JOIN students s ON (g.student_id = s.student_id OR g.roll_number = s.roll_number)
+        WHERE g.log_type = 'EXIT' AND date(g.log_time) = date(?)
+        ORDER BY g.id DESC
+      `, [targetDate]);
+    } else if (type === 'late_entry') {
+      title = `Late Entry & Cutoff Violation Report (${targetDate})`;
+      records = await dbQuery(`
+        SELECT g.*, s.name, s.branch, s.parent_name, s.parent_mobile
+        FROM gate_entry_exit_logs g
+        LEFT JOIN students s ON (g.student_id = s.student_id OR g.roll_number = s.roll_number)
+        WHERE (g.is_late = 1 OR g.alert_type IN ('LATE_ENTRY', 'VERY_LATE', 'CRITICAL')) AND date(g.log_time) = date(?)
+        ORDER BY g.id DESC
+      `, [targetDate]);
+    } else if (type === 'missing_student') {
+      title = `Missing / Unreturned Student Report (${targetDate})`;
+      records = await dbQuery(`
+        SELECT s.*, g.log_time as exit_time, g.gate_name
+        FROM students s
+        JOIN (
+          SELECT * FROM gate_entry_exit_logs
+          WHERE id IN (SELECT MAX(id) FROM gate_entry_exit_logs GROUP BY student_id)
+        ) g ON s.student_id = g.student_id
+        WHERE g.log_type = 'EXIT'
+      `);
+    } else if (type === 'unknown_person') {
+      title = `Unknown Person & Security Alerts Report`;
+      records = await dbQuery(`
+        SELECT * FROM security_alerts ORDER BY id DESC LIMIT 100
+      `);
+    } else {
+      title = `Hostel Gate Movement Report`;
+      records = await dbQuery(`
+        SELECT g.*, s.name, s.branch
+        FROM gate_entry_exit_logs g
+        LEFT JOIN students s ON (g.student_id = s.student_id OR g.roll_number = s.roll_number)
+        ORDER BY g.id DESC LIMIT 100
+      `);
+    }
+
+    if (format === 'csv') {
+      let csv = `"${title}"\n\n`;
+      csv += `"ID","Timestamp","Student ID","Roll Number","Name","Movement Type","Alert Status","Notes"\n`;
+      records.forEach(r => {
+        csv += `"${r.id || ''}","${r.log_time || r.created_at || ''}","${r.student_id || ''}","${r.roll_number || ''}","${r.name || r.student_name || ''}","${r.log_type || ''}","${r.alert_type || 'NONE'}","${r.notes || ''}"\n`;
+      });
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${type}_report_${targetDate}.csv"`);
+      return res.send(csv);
+    }
+
+    res.json({
+      success: true,
+      title,
+      type: type || 'general',
+      count: records.length,
+      records
+    });
+  } catch (err) {
+    console.error('Specialized report error:', err);
+    res.status(500).json({ success: false, message: 'Failed to generate report' });
+  }
+});
+
 module.exports = router;
+

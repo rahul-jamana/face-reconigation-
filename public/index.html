@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   
   <!-- External JS Libraries (Chart.js, SheetJS, html2pdf, vladmandic face-api, QRCode) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -17,7 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- Custom Glassmorphism Styles -->
+  <!-- Custom Styles -->
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -229,6 +230,20 @@
             <i class="fa-solid fa-sliders"></i>
             <span>System Settings</span>
           </button>
+
+          <div class="px-3 my-2 text-uppercase text-muted small fw-bold" style="font-size:0.7rem; letter-spacing:1px;">Hostel Edition</div>
+          <a class="nav-link text-success fw-semibold" href="gate.html" target="_self">
+            <i class="fa-solid fa-door-open text-success"></i>
+            <span>Hostel Gate (Dual-Cam)</span>
+          </a>
+          <a class="nav-link text-info fw-semibold" href="warden.html" target="_self">
+            <i class="fa-solid fa-user-shield text-info"></i>
+            <span>Warden Portal</span>
+          </a>
+          <a class="nav-link text-warning fw-semibold" href="security.html" target="_self">
+            <i class="fa-solid fa-shield-halved text-warning"></i>
+            <span>Security Control Desk</span>
+          </a>
         </nav>
 
         <div class="sidebar-footer">
@@ -386,6 +401,12 @@
                 <button class="btn btn-danger btn-lg" id="btn-stop-camera">
                   <i class="fa-solid fa-stop me-2"></i> Stop Camera
                 </button>
+                <button class="btn btn-info text-white btn-lg" id="btn-classroom-scan" title="Scan entire classroom and mark all sitting students present at once">
+                  <i class="fa-solid fa-users-rectangle me-2"></i> Classroom Group Scan
+                </button>
+                <button class="btn btn-secondary text-primary border border-primary btn-lg" id="btn-open-cctv-modal" title="Connect CCTV Camera / RTSP IP Stream for Classroom Auto-Attendance">
+                  <i class="fa-solid fa-video me-2"></i> Connect CCTV IP Stream
+                </button>
                 <button class="btn btn-warning" id="btn-switch-camera" title="Switch Front / Rear Camera">
                   <i class="fa-solid fa-camera-rotate me-1"></i> Flip Camera
                 </button>
@@ -468,11 +489,11 @@
                 <!-- Native Smartphone Camera File Capture Input (Works on ALL mobile HTTP & HTTPS browsers) -->
                 <input type="file" id="mobile-file-capture" accept="image/*" capture="user" class="hidden" />
                 
-                <button class="btn btn-success btn-lg w-100 mb-2 py-3" id="btn-mobile-snap-photo">
+                <button class="btn btn-success btn-lg w-100 mb-3 py-3" id="btn-mobile-snap-photo">
                   <i class="fa-solid fa-camera-retro me-2"></i> Take Photo & Verify Attendance
                 </button>
 
-                <div class="d-flex gap-2 justify-content-center">
+                <div class="d-flex gap-2 justify-content-center mb-3">
                   <button class="btn btn-primary flex-1" id="btn-mobile-start-cam">
                     <i class="fa-solid fa-video me-2"></i> Start Live Stream
                   </button>
@@ -481,8 +502,8 @@
                   </button>
                 </div>
                 
-                <div class="mt-2 text-center">
-                  <span class="text-muted small" style="font-size: 0.76rem;">
+                <div class="mt-3 text-center mb-2">
+                  <span class="text-muted small d-block" style="font-size: 0.78rem;">
                     <i class="fa-solid fa-shield-halved text-accent me-1"></i> Tip: Tap <strong>Take Photo</strong> for instant mobile face verification on all browsers.
                   </span>
                 </div>
@@ -492,18 +513,18 @@
             <!-- Manual Attendance Roll Number Fallback -->
             <div class="glass-card p-4 mb-4">
               <h5 class="mb-3"><i class="fa-solid fa-keyboard text-accent me-2"></i> Manual Roll Number Verification</h5>
-              <div class="input-group mb-2">
+              <div class="input-group mb-3">
                 <span class="input-group-text"><i class="fa-solid fa-id-card"></i></span>
                 <input type="text" id="mobile-roll-input" class="form-control" placeholder="Enter Roll Number or Student ID..." />
-                <button class="btn btn-success" id="btn-mobile-verify-roll">
+                <button class="btn btn-success px-4" id="btn-mobile-verify-roll">
                   <i class="fa-solid fa-check me-1"></i> Mark
                 </button>
               </div>
-              <span class="text-muted small">Use this fallback if smartphone lighting is low or face recognition is unavailable.</span>
+              <p class="text-muted small mb-0">Use this fallback if smartphone lighting is low or face recognition is unavailable.</p>
             </div>
 
             <!-- Mobile Recent Log Activity Feed -->
-            <div class="glass-card p-3">
+            <div class="glass-card p-3 mb-4">
               <h5 class="mb-3 px-1"><i class="fa-solid fa-history text-accent me-2"></i> Today's Mobile Scans</h5>
               <div id="mobile-feed-list" class="feed-list">
                 <div class="feed-empty p-3 text-center text-muted">
@@ -598,6 +619,9 @@
               <p class="view-subtitle">Search, filter, and export attendance records in Excel, CSV, PDF, or Print format.</p>
             </div>
             <div class="export-buttons">
+              <a href="warden.html" class="btn btn-primary fw-bold" style="text-decoration: none;">
+                <i class="fa-solid fa-file-csv me-2 text-warning"></i> 📅 Daily CSV Archives
+              </a>
               <button class="btn btn-success" id="btn-export-excel">
                 <i class="fa-solid fa-file-excel me-2"></i> Export Excel
               </button>
@@ -611,6 +635,7 @@
                 <i class="fa-solid fa-print me-2"></i> Print Table
               </button>
             </div>
+
           </div>
 
           <!-- Search & Filter Controls -->
@@ -1132,6 +1157,62 @@
           <button class="btn btn-success" id="btn-submit-csv-import">
             <i class="fa-solid fa-upload me-2"></i> Import Roster
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONNECT CCTV IP CAMERA MODAL -->
+    <div class="modal-backdrop" id="modal-cctv">
+      <div class="modal-box modal-lg">
+        <div class="modal-header">
+          <h5 class="fw-bold fs-5 text-accent mb-0"><i class="fa-solid fa-video me-2"></i> Connect Classroom CCTV / IP Camera Stream</h5>
+          <button class="btn-close-modal" data-close="modal-cctv">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-connect-cctv" onsubmit="event.preventDefault();">
+            <div class="alert-box-inline mb-3">
+              <i class="fa-solid fa-circle-info text-accent me-2"></i>
+              <span>Connect classroom CCTV, IP Camera, RTSP stream, or Security DVR to scan multiple students automatically 24/7.</span>
+            </div>
+
+            <div class="form-group mb-3">
+              <label class="form-label">Stream Protocol / Camera Type *</label>
+              <select id="cctv-stream-type" class="form-control">
+                <option value="ip_mjpeg">IP Camera Stream (HTTP / MJPEG URL - Recommended)</option>
+                <option value="rtsp">RTSP Stream (rtsp://admin:pass@ip:port/live)</option>
+                <option value="webcam_index">USB Security Camera / Network DVR</option>
+              </select>
+            </div>
+
+            <div class="form-group mb-3">
+              <label class="form-label">CCTV RTSP / IP Stream URL *</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-link"></i></span>
+                <input type="text" id="cctv-url-input" class="form-control" placeholder="rtsp://admin:password@192.168.1.100:554/h264 or http://192.168.1.100/mjpg" value="http://192.168.1.100/mjpg" required />
+              </div>
+              <p class="text-muted small mt-1">Example: <code>rtsp://admin:admin123@192.168.1.50:554/live</code> or <code>http://192.168.1.50:8080/video.mjpg</code></p>
+            </div>
+
+            <div class="form-group mb-3">
+              <label class="form-label">Classroom / Location Label</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-building"></i></span>
+                <input type="text" id="cctv-location-label" class="form-control" placeholder="e.g. Room 301 - Classroom Main CCTV" value="Classroom 301 - Main CCTV" />
+              </div>
+            </div>
+
+            <div class="quick-demo-box mt-3 mb-3">
+              <p class="quick-demo-title mb-1"><i class="fa-solid fa-bolt me-1"></i> Multi-Student Classroom Detection</p>
+              <p class="small text-muted mb-0">Once connected, VisionID AI automatically detects all sitting students in the CCTV video feed and marks attendance for everyone simultaneously.</p>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-secondary" data-close="modal-cctv">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="btn-save-cctv">
+                <i class="fa-solid fa-plug me-2"></i> Connect CCTV Stream
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Driver & Conductor Terminal — BEC Transport</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    body { background-color: #f0f4f9; font-family: 'Segoe UI', system-ui, sans-serif; }
+    .cam-box { background: #000; border-radius: 16px; overflow: hidden; position: relative; min-height: 240px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container-fluid px-3">
+      <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-bus me-2"></i>Bus #4 — Driver Portal</a>
+      <span class="navbar-text text-white small">Khordha Route</span>
+    </div>
+  </nav>
+
+  <div class="container py-3">
+    <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 text-center bg-primary text-white">
+      <h5 class="fw-bold mb-1"><i class="fa-solid fa-camera me-2"></i>Bus Door AI Camera Simulator</h5>
+      <span class="small opacity-75">Scans student faces upon boarding/deboarding</span>
+    </div>
+
+    <!-- Alert Banner -->
+    <div id="alert-box" class="alert d-none rounded-4 shadow-sm mb-3" role="alert"></div>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 p-3">
+          <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-play me-2"></i>Simulate Student Face Boarding</h6>
+          <div class="d-grid gap-2">
+            <button class="btn btn-primary rounded-pill py-2" onclick="simulateBoarding('BEC26081')">
+              <i class="fa-solid fa-user-check me-2"></i>Boarding: Munu Nial (Fee Paid)
+            </button>
+            <button class="btn btn-outline-danger rounded-pill py-2" onclick="simulateBoarding('UNPAID_STUDENT')">
+              <i class="fa-solid fa-user-xmark me-2"></i>Boarding: Fee Unpaid Student (Block Alert)
+            </button>
+            <button class="btn btn-outline-warning text-dark rounded-pill py-2" onclick="simulateBoarding('UNKNOWN_FACE')">
+              <i class="fa-solid fa-user-secret me-2"></i>Boarding: Unknown / Non-Bus Student
+            </button>
+            <button class="btn btn-info text-white rounded-pill py-2" onclick="simulateDeboard('BEC26081')">
+              <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Return Bus Boarding (Evening)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 p-3">
+          <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-route me-2"></i>Route Progress & SMS Triggers</h6>
+          <div class="d-grid gap-2">
+            <button class="btn btn-outline-primary rounded-pill py-2" onclick="triggerCollegeArrival()">
+              <i class="fa-solid fa-building-columns me-2"></i>College Arrival SMS (9:00 AM)
+            </button>
+            <button class="btn btn-outline-secondary rounded-pill py-2" onclick="triggerCollegeDeparture()">
+              <i class="fa-solid fa-school-flag me-2"></i>College Departure SMS (5:00 PM)
+            </button>
+            <button class="btn btn-outline-success rounded-pill py-2" onclick="triggerHomeStopArrival()">
+              <i class="fa-solid fa-location-dot me-2"></i>Home Stop Arrival SMS (Pitapalli Square)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4 text-center">
+      <a href="/driver/student-list.html" class="btn btn-outline-primary rounded-pill px-4 me-2"><i class="fa-solid fa-users me-2"></i>View Route Student List</a>
+      <a href="/driver/boarding-log.html" class="btn btn-outline-secondary rounded-pill px-4"><i class="fa-solid fa-list me-2"></i>View Driver Boarding Log</a>
+    </div>
+  </div>
+
+  <script>
+    function showAlert(msg, isSuccess, alertType) {
+      const box = document.getElementById('alert-box');
+      box.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-warning');
+      box.classList.add(isSuccess ? 'alert-success' : 'alert-danger');
+      box.innerHTML = `<strong>${isSuccess ? '✔ SUCCESS' : '⛔ ALERT BLOCKED'}:</strong> ${msg}`;
+    }
+
+    async function simulateBoarding(type) {
+      let roll = 'BEC26081';
+      if (type === 'UNKNOWN_FACE') roll = 'UNKNOWN_99';
+
+      const res = await fetch('/api/bus/board', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roll_number: roll, bus_id: 1, route_id: 1 })
+      });
+      const data = await res.json();
+      showAlert(data.message, data.allowed, data.alert);
+    }
+
+    async function simulateDeboard(roll) {
+      const res = await fetch('/api/bus/deboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roll_number: roll, bus_id: 1 })
+      });
+      const data = await res.json();
+      showAlert(data.message, true, 'DEBOARD');
+    }
+
+    async function triggerCollegeArrival() {
+      const res = await fetch('/api/bus/arrive-college', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roll_number: 'BEC26081', bus_id: 1 })
+      });
+      const data = await res.json();
+      showAlert(data.message, true);
+    }
+
+    async function triggerCollegeDeparture() {
+      const res = await fetch('/api/bus/leave-college', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roll_number: 'BEC26081', bus_id: 1 })
+      });
+      const data = await res.json();
+      showAlert(data.message, true);
+    }
+
+    async function triggerHomeStopArrival() {
+      const res = await fetch('/api/bus/arrive-stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roll_number: 'BEC26081', stop_name: 'Pitapalli Square' })
+      });
+      const data = await res.json();
+      showAlert(data.message, true);
+    }
+  </script>
+</body>
+</html>

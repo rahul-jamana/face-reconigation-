@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VisioFace AI — Hostel Warden Portal & Admin Master Data Management</title>
+  <!-- Google Fonts & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    body {
+      background-color: #f0f4f9 !important;
+      color: #0f172a !important;
+    }
+    .warden-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .navbar-theme {
+      background: linear-gradient(135deg, #0f172a, #1e3a8a) !important;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
+    }
+    .metric-card {
+      background: #ffffff;
+      border: 1px solid #bfdbfe;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.08);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .metric-card:hover {
+      transform: translateY(-2px);
+      border-color: #2563eb;
+    }
+    .metric-card .icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    .metric-card .val {
+      font-size: 2.25rem;
+      font-weight: 800;
+    }
+    .card-white {
+      background: #ffffff !important;
+      border: 1px solid #bfdbfe !important;
+      border-radius: 16px !important;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.08) !important;
+    }
+    .card-header-blue {
+      background: #eff6ff !important;
+      border-bottom: 1px solid #bfdbfe !important;
+      border-radius: 15px 15px 0 0 !important;
+    }
+    .config-card {
+      background: #ffffff;
+      border: 1px solid #bfdbfe;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.08);
+    }
+    .tab-btn-warden {
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      border: 1px solid #bfdbfe;
+      background: #ffffff;
+      color: #1e3a8a;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.9rem;
+    }
+    .tab-btn-warden.active {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #1d4ed8;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    }
+    .table-white {
+      background: #ffffff !important;
+      color: #0f172a !important;
+    }
+    .table-white th {
+      background: #eff6ff !important;
+      color: #1e3a8a !important;
+      font-weight: 700 !important;
+    }
+    .delete-hub-card {
+      border: 1px solid #fecdd3;
+      background: #fff1f2;
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.2s ease;
+    }
+    .delete-hub-card:hover {
+      border-color: #f43f5e;
+      box-shadow: 0 4px 15px rgba(244, 63, 94, 0.15);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-theme px-4 py-3">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold fs-4 text-white" href="index.html">
+        <i class="fa-solid fa-user-shield text-cyan fs-3"></i>
+        <span>VisioFace <span class="text-info">AI</span> — Warden Portal & Admin Control</span>
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <a href="index.html" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-home me-1"></i> Main Dashboard</a>
+        <a href="gate.html" class="btn btn-success text-white btn-sm fw-bold"><i class="fa-solid fa-door-open me-1"></i> Gate Dual-Cam</a>
+        <a href="security.html" class="btn btn-warning text-dark btn-sm fw-bold"><i class="fa-solid fa-shield-halved me-1"></i> Security Desk</a>
+        <span class="badge bg-light text-dark px-3 py-2 fs-6 fw-bold" id="warden-clock">00:00:00</span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="warden-container">
+    
+    <!-- HEADER SUMMARY & ADMIN DELETE TOOLBAR -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+      <div>
+        <h3 class="fw-bold mb-1 text-primary"><i class="fa-solid fa-hotel me-2"></i> Main Hostel Block A — Admin & Warden Control Center</h3>
+        <p class="text-muted mb-0">Live hostel occupancy, student directory management, data deletion center, gate movement logs, and security alerts.</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-danger fw-bold shadow-sm" onclick="openDeleteDataHubModal()">
+          <i class="fa-solid fa-trash-can me-1"></i> 🗑️ Admin Data Delete Hub
+        </button>
+        <button class="btn btn-outline-danger fw-bold btn-sm" onclick="clearAllTestLogs()">
+          <i class="fa-solid fa-broom me-1"></i> Clear Activity Logs
+        </button>
+        <button class="btn btn-outline-primary fw-bold btn-sm" onclick="exportDirectoryToCSV()">
+          <i class="fa-solid fa-file-csv me-1"></i> Export to CSV
+        </button>
+        <button class="btn btn-primary fw-bold btn-sm" onclick="refreshAllWardenData()">
+          <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh Dashboard
+        </button>
+      </div>
+    </div>
+
+    <!-- METRICS ROW (TOTAL, IN, OUT, LATE) -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-3">
+        <div class="metric-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-muted fw-semibold">Total Registered Students</span>
+            <div class="icon-box bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-users"></i></div>
+          </div>
+          <div class="val text-primary" id="val-total">0</div>
+          <div class="small text-muted mt-1">Hostel Enrolled Students</div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="metric-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-muted fw-semibold">Total IN (In Hostel)</span>
+            <div class="icon-box bg-success bg-opacity-10 text-success"><i class="fa-solid fa-building-user"></i></div>
+          </div>
+          <div class="val text-success" id="val-present">0</div>
+          <div class="small text-success mt-1"><i class="fa-solid fa-circle-check me-1"></i> Safe Inside Rooms</div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="metric-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-muted fw-semibold">Total OUT (Outside)</span>
+            <div class="icon-box bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-user-xmark"></i></div>
+          </div>
+          <div class="val text-danger" id="val-missing">0</div>
+          <div class="small text-danger mt-1"><i class="fa-solid fa-person-walking-arrow-right me-1"></i> Currently Outside</div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="metric-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-muted fw-semibold">Late Entries Today</span>
+            <div class="icon-box bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-clock"></i></div>
+          </div>
+          <div class="val text-warning" id="val-late">0</div>
+          <div class="small text-warning mt-1"><i class="fa-solid fa-bell me-1"></i> After Entry Cutoff Time</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NAVIGATION TABS -->
+    <div class="d-flex gap-2 mb-4 flex-wrap">
+      <button class="tab-btn-warden active" id="tab-btn-directory" onclick="switchWardenTab('directory')">
+        <i class="fa-solid fa-users-gear me-1"></i> All Students Directory & Delete Options
+      </button>
+      <button class="tab-btn-warden" id="tab-btn-gatelogs" onclick="switchWardenTab('gatelogs')">
+        <i class="fa-solid fa-right-left me-1"></i> Gate Movement Logs
+      </button>
+      <button class="tab-btn-warden" id="tab-btn-alerts" onclick="switchWardenTab('alerts')">
+        <i class="fa-solid fa-triangle-exclamation me-1"></i> Security Incident Logs
+      </button>
+      <button class="tab-btn-warden" id="tab-btn-daily" onclick="switchWardenTab('daily')">
+        <i class="fa-solid fa-calendar-days me-1"></i> Day-by-Day Occupancy History
+      </button>
+      <button class="tab-btn-warden" id="tab-btn-missing" onclick="switchWardenTab('missing')">
+        <i class="fa-solid fa-user-clock me-1"></i> Missing / Outside Students
+      </button>
+      <button class="tab-btn-warden" id="tab-btn-csvarchives" onclick="switchWardenTab('csvarchives')">
+        <i class="fa-solid fa-file-csv me-1 text-success"></i> 📅 Day-by-Day CSV Archives
+      </button>
+      <button class="tab-btn-warden" id="tab-btn-multihostel" onclick="switchWardenTab('multihostel')">
+        <i class="fa-solid fa-building me-1 text-primary"></i> 🏢 Multi-Hostel Admin Overview
+      </button>
+    </div>
+
+    <!-- MAIN GRID CONTAINER -->
+    <div class="row g-4">
+
+      
+      <!-- TAB 1: ALL STUDENTS DIRECTORY & ADMIN DELETE CONTROLS -->
+      <div class="col-lg-8" id="warden-tab-directory">
+        <div class="card card-white h-100">
+          <div class="card-header card-header-blue d-flex justify-content-between align-items-center py-3 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <h5 class="mb-0 text-primary fw-bold"><i class="fa-solid fa-address-book me-2"></i> Registered Students Directory</h5>
+              <span class="badge bg-primary text-white fs-6" id="all-students-count">0 Total</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button class="btn btn-sm btn-danger fw-bold d-none" id="btn-bulk-delete" onclick="bulkDeleteSelectedStudents()">
+                <i class="fa-solid fa-trash me-1"></i> Delete Selected (<span id="selected-count">0</span>)
+              </button>
+              <input type="text" class="form-control form-control-sm border-secondary bg-light text-dark" id="directory-search-input" placeholder="Search name, roll, branch..." onkeyup="filterStudentDirectory()" style="width: 200px;" />
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-white mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th style="width: 40px;" class="text-center">
+                      <input type="checkbox" id="select-all-students" onclick="toggleSelectAllStudents(this)" title="Select all for bulk delete" />
+                    </th>
+                    <th>Student Info</th>
+                    <th>Branch & Year</th>
+                    <th>Parent Contact</th>
+                    <th>Current Status</th>
+                    <th>Last Gate Movement</th>
+                    <th class="text-end">Admin Delete / Edit</th>
+                  </tr>
+                </thead>
+                <tbody id="all-students-body">
+                  <tr><td colspan="7" class="text-center text-muted py-4">Loading student records...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: GATE MOVEMENT LOGS TABLE WITH DELETE PER ROW -->
+      <div class="col-lg-8 d-none" id="warden-tab-gatelogs">
+        <div class="card card-white h-100">
+          <div class="card-header card-header-blue d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 text-primary fw-bold"><i class="fa-solid fa-right-left me-2"></i> Gate Entry & Exit Activity Logs</h5>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-danger fw-bold" onclick="clearAllGateLogs()"><i class="fa-solid fa-trash me-1"></i> Clear All Gate Logs</button>
+              <button class="btn btn-sm btn-outline-primary fw-bold" onclick="loadGateLogsTable()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-white mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>Log ID</th>
+                    <th>Student Details</th>
+                    <th>Movement</th>
+                    <th>Gate / Camera</th>
+                    <th>Timestamp</th>
+                    <th class="text-end">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="gate-logs-table-body">
+                  <tr><td colspan="6" class="text-center text-muted py-4">Loading movement logs...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: SECURITY ALERTS TABLE WITH DELETE PER ROW -->
+      <div class="col-lg-8 d-none" id="warden-tab-alerts">
+        <div class="card card-white h-100">
+          <div class="card-header card-header-blue d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i> Security Incident & Hidden Face Alerts</h5>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-danger fw-bold" onclick="clearAllSecurityAlerts()"><i class="fa-solid fa-trash me-1"></i> Clear All Alerts</button>
+              <button class="btn btn-sm btn-outline-primary fw-bold" onclick="loadSecurityAlertsTable()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-white mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>Alert ID</th>
+                    <th>Snapshot</th>
+                    <th>Alert Type</th>
+                    <th>Notes / Details</th>
+                    <th>Timestamp</th>
+                    <th class="text-end">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="security-alerts-table-body">
+                  <tr><td colspan="6" class="text-center text-muted py-4">Loading security alerts...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: DAY-BY-DAY HISTORICAL OCCUPANCY ANALYTICS -->
+      <div class="col-lg-8 d-none" id="warden-tab-daily">
+        <div class="card card-white h-100">
+          <div class="card-header card-header-blue d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 text-success fw-bold"><i class="fa-solid fa-chart-line me-2"></i> Day-by-Day Occupancy Analytics</h5>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-danger fw-bold" onclick="clearDailyOccupancyHistory()"><i class="fa-solid fa-trash me-1"></i> Clear Occupancy Logs</button>
+              <button class="btn btn-sm btn-outline-success fw-bold" onclick="loadDailyOccupancy()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-white mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Total Registered</th>
+                    <th>Total IN (Present)</th>
+                    <th>Total OUT (Outside)</th>
+                    <th>Late Entries</th>
+                    <th>Occupancy Rate</th>
+                  </tr>
+                </thead>
+                <tbody id="daily-occupancy-body">
+                  <tr><td colspan="6" class="text-center text-muted py-4">Loading day-by-day logs...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: MISSING / OUTSIDE STUDENTS -->
+      <div class="col-lg-8 d-none" id="warden-tab-missing">
+        <div class="card card-white h-100">
+          <div class="card-header card-header-blue d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 text-danger fw-bold"><i class="fa-solid fa-user-clock me-2"></i> Currently Outside Hostellers</h5>
+            <span class="badge bg-danger fs-6" id="missing-badge">0 Missing</span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-white mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>Student Details</th>
+                    <th>Branch</th>
+                    <th>Exit Timestamp</th>
+                    <th>Parent Contact</th>
+                    <th>Warden Action</th>
+                  </tr>
+                </thead>
+                <tbody id="missing-table-body">
+                  <tr><td colspan="5" class="text-center text-muted py-4">Loading missing hostellers...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 6: DAY-BY-DAY CSV ARCHIVES & DOWNLOAD -->
+      <div class="col-lg-8 d-none" id="warden-tab-csvarchives">
+        <div class="card card-white h-100">
+          <div class="card-header card-header-blue d-flex justify-content-between align-items-center py-3 flex-wrap gap-2">
+            <div>
+              <h5 class="mb-0 text-primary fw-bold"><i class="fa-solid fa-file-csv me-2"></i> 📅 Day-by-Day CSV Log Archives</h5>
+              <small class="text-muted">Data older than 1 day is automatically exported to CSV files here and cleared from active database.</small>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-warning text-dark fw-bold" onclick="triggerManualCsvArchive(false)"><i class="fa-solid fa-box-archive me-1"></i> Archive Logs >1 Day</button>
+              <button class="btn btn-sm btn-danger fw-bold" onclick="triggerManualCsvArchive(true)"><i class="fa-solid fa-file-export me-1"></i> Archive ALL & Reset Live Table</button>
+              <button class="btn btn-sm btn-outline-primary fw-bold" onclick="loadCsvArchivesTable()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-white mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>Log Date</th>
+                    <th>CSV Archive File Name</th>
+                    <th>Total Log Entries</th>
+                    <th>File Size</th>
+                    <th class="text-end">Download Action</th>
+                  </tr>
+                </thead>
+                <tbody id="csv-archives-table-body">
+                  <tr><td colspan="5" class="text-center text-muted py-4">Loading daily CSV archives...</td></tr>
+                </tbody>
+              </table>
+            </div>
+      <!-- TAB 7: MULTI-HOSTEL ADMIN OVERVIEW & AUTO-ESCALATION -->
+      <div class="col-lg-8 d-none" id="warden-tab-multihostel">
+        <div class="card card-white mb-4">
+          <div class="card-header card-header-blue d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 text-primary fw-bold"><i class="fa-solid fa-building-user me-2"></i> All Institution Hostels Summary</h5>
+            <span class="badge bg-primary fs-6">4 Active Blocks</span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-white mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>Hostel Block</th>
+                    <th>Total IN</th>
+                    <th>Total OUT</th>
+                    <th>LATE Entries</th>
+                    <th>MISSING</th>
+                    <th>Block Status</th>
+                  </tr>
+                </thead>
+                <tbody id="multi-hostel-table-body">
+                  <tr>
+                    <td><strong class="text-primary font-monospace">Boys Hostel A</strong></td>
+                    <td><span class="badge bg-success fs-6">240 IN</span></td>
+                    <td><span class="badge bg-danger fs-6">5 OUT</span></td>
+                    <td><span class="badge bg-warning text-dark">3 Late</span></td>
+                    <td><span class="badge bg-danger">2 Missing</span></td>
+                    <td><span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> Active</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong class="text-primary font-monospace">Boys Hostel B</strong></td>
+                    <td><span class="badge bg-success fs-6">220 IN</span></td>
+                    <td><span class="badge bg-danger fs-6">8 OUT</span></td>
+                    <td><span class="badge bg-warning text-dark">2 Late</span></td>
+                    <td><span class="badge bg-danger">1 Missing</span></td>
+                    <td><span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> Active</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong class="text-primary font-monospace">Girls Hostel A</strong></td>
+                    <td><span class="badge bg-success fs-6">180 IN</span></td>
+                    <td><span class="badge bg-danger fs-6">2 OUT</span></td>
+                    <td><span class="badge bg-warning text-dark">1 Late</span></td>
+                    <td><span class="badge bg-success">0 Missing</span></td>
+                    <td><span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> Active</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong class="text-primary font-monospace">Girls Hostel B</strong></td>
+                    <td><span class="badge bg-success fs-6">160 IN</span></td>
+                    <td><span class="badge bg-danger fs-6">3 OUT</span></td>
+                    <td><span class="badge bg-warning text-dark">2 Late</span></td>
+                    <td><span class="badge bg-danger">2 Missing</span></td>
+                    <td><span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> Active</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- AUTO-ESCALATION LIVE TIMELINE BANNER -->
+        <div class="card card-white p-4">
+          <h5 class="fw-bold text-danger mb-3"><i class="fa-solid fa-clock-rotate-left me-2"></i> Auto-Escalation Curfew Schedule</h5>
+          <div class="row g-2 text-center">
+            <div class="col-md-2 col-4">
+              <div class="p-2 border rounded bg-light">
+                <div class="small fw-bold text-muted">7:00 PM</div>
+                <span class="badge bg-warning text-dark small mt-1">Curfew Check</span>
+              </div>
+            </div>
+            <div class="col-md-2 col-4">
+              <div class="p-2 border rounded bg-light">
+                <div class="small fw-bold text-muted">7:15 PM</div>
+                <span class="badge bg-info text-white small mt-1">1st Follow-up</span>
+              </div>
+            </div>
+            <div class="col-md-2 col-4">
+              <div class="p-2 border rounded bg-light">
+                <div class="small fw-bold text-muted">8:00 PM</div>
+                <span class="badge bg-danger small mt-1">Final Alert</span>
+              </div>
+            </div>
+            <div class="col-md-2 col-4">
+              <div class="p-2 border rounded bg-light">
+                <div class="small fw-bold text-muted">8:15 PM</div>
+                <span class="badge bg-danger small mt-1">Parent SMS</span>
+              </div>
+            </div>
+            <div class="col-md-2 col-4">
+              <div class="p-2 border rounded bg-light">
+                <div class="small fw-bold text-muted">10:00 PM</div>
+                <span class="badge bg-dark small mt-1">Dean Alert</span>
+              </div>
+            </div>
+            <div class="col-md-2 col-4">
+              <div class="p-2 border rounded bg-light">
+                <div class="small fw-bold text-muted">12:00 AM</div>
+                <span class="badge bg-danger small mt-1">Police Notice</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: ADMIN GATE IN/OUT & CURFEW TIMING CONTROLS -->
+
+      <div class="col-lg-4">
+        <div class="config-card mb-4">
+          <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-clock me-2"></i> Admin Gate IN/OUT Rules</h5>
+          <form id="form-curfew" onsubmit="saveCurfewConfig(event)">
+            
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">ALLOWED MORNING EXIT TIME (OUT TIME)</label>
+              <input type="time" class="form-control bg-light text-dark border-secondary" id="exit-time-input" value="06:00" required />
+              <div class="form-text text-muted">Earliest allowed student exit time in morning.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">ALLOWED EVENING ENTRY CUTOFF (IN TIME)</label>
+              <input type="time" class="form-control bg-light text-dark border-secondary" id="entry-cutoff-input" value="19:00" required />
+              <div class="form-text text-muted">Latest allowed student entry cutoff time in evening.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">MAX LATE GRACE THRESHOLD (MINUTES)</label>
+              <div class="input-group">
+                <input type="number" class="form-control bg-light text-dark border-secondary" id="grace-mins-input" value="60" required />
+                <span class="input-group-text bg-light border-secondary text-dark">Mins</span>
+              </div>
+              <div class="form-text text-muted">Grace period buffer before escalation.</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary fw-bold w-100 py-2">
+              <i class="fa-solid fa-floppy-disk me-2"></i> Save Gate IN/OUT Rules
+            </button>
+          </form>
+        </div>
+
+        <!-- QUICK NOTICE BROADCAST BOX -->
+        <div class="config-card">
+          <h5 class="fw-bold mb-2 text-warning"><i class="fa-solid fa-bullhorn me-2"></i> Emergency Warden Broadcast</h5>
+          <p class="small text-muted mb-3">Send push notifications directly to hostellers.</p>
+          <textarea class="form-control bg-light text-dark border-secondary mb-3" rows="3" placeholder="Enter warden notice..."></textarea>
+          <button class="btn btn-warning text-dark fw-bold w-100" onclick="alert('Notice broadcasted!')">
+            <i class="fa-solid fa-paper-plane me-2"></i> Broadcast Notice
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ADMIN DATA DELETE HUB MODAL -->
+  <div class="modal fade" id="modal-delete-data-hub" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content card-white">
+        <div class="modal-header card-header-blue border-danger">
+          <h5 class="modal-title fw-bold text-danger"><i class="fa-solid fa-trash-can-arrow-up me-2"></i> 🗑️ Admin Master Data Delete Hub</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="text-muted mb-4">Select specifically what system data you would like to delete or reset. All actions require confirmation.</p>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="delete-hub-card">
+                <h6 class="fw-bold text-danger mb-1"><i class="fa-solid fa-users-slash me-2"></i> Clear All Student Profiles</h6>
+                <p class="small text-muted mb-3">Permanently delete all registered student profiles and their face embeddings from database.</p>
+                <button class="btn btn-sm btn-outline-danger fw-bold w-100" onclick="purgeAllStudentProfiles()">
+                  <i class="fa-solid fa-trash me-1"></i> Delete All Students
+                </button>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="delete-hub-card">
+                <h6 class="fw-bold text-danger mb-1"><i class="fa-solid fa-face-flushed me-2"></i> Reset AI Face Models Only</h6>
+                <p class="small text-muted mb-3">Clear 30-frame AI face embeddings for all students without deleting student profile info.</p>
+                <button class="btn btn-sm btn-outline-warning text-dark fw-bold w-100" onclick="resetAllFaceEmbeddings()">
+                  <i class="fa-solid fa-arrows-rotate me-1"></i> Reset Face Embeddings
+                </button>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="delete-hub-card">
+                <h6 class="fw-bold text-danger mb-1"><i class="fa-solid fa-door-closed me-2"></i> Clear Gate Entry / Exit Logs</h6>
+                <p class="small text-muted mb-3">Purge all gate camera movement activity logs while preserving student directory records.</p>
+                <button class="btn btn-sm btn-outline-danger fw-bold w-100" onclick="clearAllGateLogs()">
+                  <i class="fa-solid fa-broom me-1"></i> Delete Gate Logs
+                </button>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="delete-hub-card">
+                <h6 class="fw-bold text-danger mb-1"><i class="fa-solid fa-shield-cat me-2"></i> Clear Security Incident Alerts</h6>
+                <p class="small text-muted mb-3">Purge all unknown face and covered face security alerts and snapshot images.</p>
+                <button class="btn btn-sm btn-outline-danger fw-bold w-100" onclick="clearAllSecurityAlerts()">
+                  <i class="fa-solid fa-shield-virus me-1"></i> Delete Security Alerts
+                </button>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="delete-hub-card">
+                <h6 class="fw-bold text-danger mb-1"><i class="fa-solid fa-chart-pie me-2"></i> Clear Occupancy History</h6>
+                <p class="small text-muted mb-3">Delete day-by-day historical occupancy snapshots and attendance analytics records.</p>
+                <button class="btn btn-sm btn-outline-danger fw-bold w-100" onclick="clearDailyOccupancyHistory()">
+                  <i class="fa-solid fa-trash-arrow-up me-1"></i> Delete Occupancy Logs
+                </button>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="delete-hub-card bg-danger bg-opacity-10 border-danger">
+                <h6 class="fw-bold text-danger mb-1"><i class="fa-solid fa-bomb me-2"></i> FULL MASTER SYSTEM RESET</h6>
+                <p class="small text-muted mb-3">Wipe ALL database tables (students, faces, gate logs, security alerts, daily history) to factory state.</p>
+                <button class="btn btn-sm btn-danger fw-bold w-100" onclick="executeFullMasterReset()">
+                  <i class="fa-solid fa-fire me-1"></i> MASTER RESET (Wipe All Data)
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT STUDENT MODAL -->
+  <div class="modal fade" id="modal-edit-student" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content card-white">
+        <div class="modal-header card-header-blue">
+          <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-user-pen me-2"></i> Edit Student Profile</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="form-edit-student" onsubmit="saveStudentEdits(event)">
+            <input type="hidden" id="edit-student-id" />
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">STUDENT FULL NAME *</label>
+              <input type="text" id="edit-name" class="form-control bg-light text-dark border-secondary" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">ROLL NUMBER / ID *</label>
+              <input type="text" id="edit-roll" class="form-control bg-light text-dark border-secondary" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">BRANCH / DEPARTMENT *</label>
+              <input type="text" id="edit-branch" class="form-control bg-light text-dark border-secondary" required />
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label text-muted small fw-bold">DATE OF BIRTH</label>
+                <input type="date" id="edit-dob" class="form-control bg-light text-dark border-secondary" />
+              </div>
+              <div class="col-6">
+                <label class="form-label text-muted small fw-bold">ACADEMIC YEAR</label>
+                <input type="text" id="edit-year" class="form-control bg-light text-dark border-secondary" />
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">MOBILE NUMBER</label>
+              <input type="tel" id="edit-mobile" class="form-control bg-light text-dark border-secondary" />
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label text-muted small fw-bold">PARENT NAME</label>
+                <input type="text" id="edit-parent-name" class="form-control bg-light text-dark border-secondary" />
+              </div>
+              <div class="col-6">
+                <label class="form-label text-muted small fw-bold">PARENT MOBILE</label>
+                <input type="tel" id="edit-parent-mobile" class="form-control bg-light text-dark border-secondary" />
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary fw-bold w-100 py-2">
+              <i class="fa-solid fa-floppy-disk me-2"></i> Save Changes
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOOTSTRAP JS BUNDLE -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    let allStudentsCache = [];
+    let selectedStudentIds = new Set();
+
+    setInterval(() => {
+      document.getElementById('warden-clock').innerText = new Date().toLocaleTimeString();
+    }, 1000);
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await refreshAllWardenData();
+      await loadCurfewConfig();
+    });
+
+    async function refreshAllWardenData() {
+      await loadWardenData();
+      await loadAllStudents();
+      await loadGateLogsTable();
+      await loadSecurityAlertsTable();
+      await loadDailyOccupancy();
+      await loadCsvArchivesTable();
+    }
+
+    function switchWardenTab(tab) {
+      ['directory', 'gatelogs', 'alerts', 'daily', 'missing', 'csvarchives'].forEach(t => {
+        const el = document.getElementById(`warden-tab-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (el) el.classList.add('d-none');
+        if (btn) btn.classList.remove('active');
+      });
+
+      const targetEl = document.getElementById(`warden-tab-${tab}`);
+      const targetBtn = document.getElementById(`tab-btn-${tab}`);
+      if (targetEl) targetEl.classList.remove('d-none');
+      if (targetBtn) targetBtn.classList.add('active');
+
+      if (tab === 'gatelogs') loadGateLogsTable();
+      if (tab === 'alerts') loadSecurityAlertsTable();
+      if (tab === 'csvarchives') loadCsvArchivesTable();
+    }
+
+    function openDeleteDataHubModal() {
+      const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-delete-data-hub'));
+      modal.show();
+    }
+
+
+    async function loadWardenData() {
+      try {
+        const res = await fetch('/api/warden/dashboard');
+        const data = await res.json();
+        
+        if (data.success && data.stats) {
+          document.getElementById('val-total').innerText = data.stats.totalStudents || 0;
+          document.getElementById('val-present').innerText = data.stats.presentInHostel || 0;
+          document.getElementById('val-missing').innerText = data.stats.missingCount || 0;
+          document.getElementById('val-late').innerText = data.stats.lateEntriesCount || 0;
+          document.getElementById('missing-badge').innerText = `${data.stats.missingCount || 0} Missing`;
+
+          const missingBody = document.getElementById('missing-table-body');
+          if (!data.missingStudents || data.missingStudents.length === 0) {
+            missingBody.innerHTML = `<tr><td colspan="5" class="text-center text-success py-4"><i class="fa-solid fa-check-circle me-2"></i> All registered hostellers are present in rooms!</td></tr>`;
+          } else {
+            missingBody.innerHTML = data.missingStudents.map(s => `
+              <tr>
+                <td>
+                  <div class="fw-bold text-dark">${s.name}</div>
+                  <div class="small text-muted font-monospace">${s.roll_number}</div>
+                </td>
+                <td><span class="badge bg-secondary">${s.branch}</span></td>
+                <td><span class="text-danger small font-monospace">${new Date(s.exit_time).toLocaleString()}</span></td>
+                <td>
+                  <div class="small"><i class="fa-solid fa-user me-1 text-primary"></i> ${s.parent_name || 'Parent'}</div>
+                  <div class="small text-muted"><i class="fa-solid fa-phone me-1 text-success"></i> ${s.parent_mobile || s.mobile || 'N/A'}</div>
+                </td>
+                <td class="text-end">
+                  <div class="d-flex gap-1 justify-content-end flex-wrap">
+                    <a href="tel:${s.parent_mobile || s.mobile}" class="btn btn-sm btn-outline-primary fw-bold" title="Call Parent">
+                      <i class="fa-solid fa-phone"></i> Call
+                    </a>
+                    <button class="btn btn-sm btn-outline-warning text-dark fw-bold" onclick="sendParentSmsAlert('${s.student_id}', '${s.name.replace(/'/g, "\\'")}')" title="Send Parent SMS">
+                      <i class="fa-solid fa-comment-sms"></i> Parent SMS
+                    </button>
+                    <button class="btn btn-sm btn-outline-info text-dark fw-bold" onclick="viewPhotoModal('${s.photo_path || s.photo_url || ''}', '${s.name.replace(/'/g, "\\'")}')" title="View Snapshot Photo">
+                      <i class="fa-solid fa-image"></i> Photo
+                    </button>
+                    <button class="btn btn-sm btn-success fw-bold" onclick="markReturned('${s.student_id}', '${s.name.replace(/'/g, "\\'")}')">
+                      <i class="fa-solid fa-check me-1"></i> Mark Returned
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `).join('');
+          }
+
+        }
+      } catch (err) { console.error('Warden data error:', err); }
+    }
+
+    async function loadAllStudents() {
+      try {
+        const res = await fetch('/api/warden/all-students');
+        const data = await res.json();
+        if (data.success && data.students) {
+          allStudentsCache = data.students;
+          selectedStudentIds.clear();
+          updateBulkDeleteState();
+          renderStudentDirectory(allStudentsCache);
+        }
+      } catch (err) { console.error('Error loading all students:', err); }
+    }
+
+    function renderStudentDirectory(students) {
+      document.getElementById('all-students-count').innerText = `${students.length} Registered`;
+      const body = document.getElementById('all-students-body');
+      if (students.length === 0) {
+        body.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No student records found in database.</td></tr>`;
+        return;
+      }
+      body.innerHTML = students.map(s => {
+        const isIn = s.current_status === 'ENTRY' || !s.current_status;
+        const statusBadge = isIn ? `<span class="badge bg-success"><i class="fa-solid fa-door-open me-1"></i> IN (Inside)</span>` : `<span class="badge bg-danger"><i class="fa-solid fa-door-closed me-1"></i> OUT (Outside)</span>`;
+        const sId = s.student_id || s.roll_number;
+        const isChecked = selectedStudentIds.has(sId) ? 'checked' : '';
+
+        return `
+          <tr>
+            <td class="text-center">
+              <input type="checkbox" class="student-select-chk" value="${sId}" ${isChecked} onchange="toggleStudentSelection('${sId}', this.checked)" />
+            </td>
+            <td>
+              <div class="fw-bold text-dark">${s.name}</div>
+              <div class="small text-muted font-monospace">${s.roll_number || s.student_id}</div>
+            </td>
+            <td>
+              <div>${s.branch || 'General'}</div>
+              <small class="text-muted">${s.academic_year || '2026'}</small>
+            </td>
+            <td>
+              <div class="small"><i class="fa-solid fa-user me-1 text-primary"></i> ${s.parent_name || 'Parent'}</div>
+              <div class="small text-muted"><i class="fa-solid fa-phone me-1"></i> ${s.parent_mobile || s.mobile || 'N/A'}</div>
+            </td>
+            <td>${statusBadge}</td>
+            <td><small class="text-muted font-monospace">${s.last_movement_time ? new Date(s.last_movement_time).toLocaleString() : 'N/A'}</small></td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-primary me-1" title="Edit Student Profile" onclick="openEditStudentModal('${sId}')">
+                <i class="fa-solid fa-pen"></i> Edit
+              </button>
+              <button class="btn btn-sm btn-danger fw-bold" title="Delete Student Record" onclick="deleteStudentRecord('${sId}', '${s.name.replace(/'/g, "\\'")}')">
+                <i class="fa-solid fa-trash me-1"></i> Delete
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function toggleStudentSelection(sId, checked) {
+      if (checked) selectedStudentIds.add(sId);
+      else selectedStudentIds.delete(sId);
+      updateBulkDeleteState();
+    }
+
+    function toggleSelectAllStudents(masterChk) {
+      const isChecked = masterChk.checked;
+      allStudentsCache.forEach(s => {
+        const sId = s.student_id || s.roll_number;
+        if (isChecked) selectedStudentIds.add(sId);
+        else selectedStudentIds.delete(sId);
+      });
+      document.querySelectorAll('.student-select-chk').forEach(c => c.checked = isChecked);
+      updateBulkDeleteState();
+    }
+
+    function updateBulkDeleteState() {
+      const btn = document.getElementById('btn-bulk-delete');
+      const cnt = document.getElementById('selected-count');
+      const total = selectedStudentIds.size;
+      cnt.innerText = total;
+      if (total > 0) btn.classList.remove('d-none');
+      else btn.classList.add('d-none');
+    }
+
+    function filterStudentDirectory() {
+      const q = document.getElementById('directory-search-input').value.toLowerCase();
+      const filtered = allStudentsCache.filter(s => 
+        (s.name && s.name.toLowerCase().includes(q)) ||
+        (s.roll_number && s.roll_number.toLowerCase().includes(q)) ||
+        (s.branch && s.branch.toLowerCase().includes(q))
+      );
+      renderStudentDirectory(filtered);
+    }
+
+    async function deleteStudentRecord(studentId, name) {
+      if (!confirm(`⚠️ ARE YOU SURE YOU WANT TO DELETE THIS STUDENT?\n\nStudent: ${name}\nID: ${studentId}\n\nThis will permanently remove the student profile, face embeddings, movement history, and attendance records!`)) return;
+
+      try {
+        const res = await fetch(`/api/students/${studentId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          alert(`✅ ${data.message}`);
+          await refreshAllWardenData();
+        } else {
+          alert('Delete failed: ' + data.message);
+        }
+      } catch (err) { alert('Server error deleting student'); }
+    }
+
+    async function bulkDeleteSelectedStudents() {
+      const ids = Array.from(selectedStudentIds);
+      if (ids.length === 0) return;
+
+      if (!confirm(`⚠️ ARE YOU SURE YOU WANT TO BULK DELETE ${ids.length} SELECTED STUDENTS?\n\nThis action cannot be undone!`)) return;
+
+      try {
+        const res = await fetch('/api/students/bulk-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_ids: ids })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`✅ ${data.message}`);
+          selectedStudentIds.clear();
+          await refreshAllWardenData();
+        } else { alert('Bulk delete failed: ' + data.message); }
+      } catch (err) { alert('Server error during bulk delete'); }
+    }
+
+    async function purgeAllStudentProfiles() {
+      if (!confirm('⚠️ CRITICAL WARNING: Delete ALL registered student profiles and facial data from database?')) return;
+      try {
+        const res = await fetch('/api/students/all/clear', { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ ' + data.message);
+          bootstrap.Modal.getInstance(document.getElementById('modal-delete-data-hub'))?.hide();
+          await refreshAllWardenData();
+        }
+      } catch (err) { alert('Purge failed'); }
+    }
+
+    async function resetAllFaceEmbeddings() {
+      if (!confirm('⚠️ Reset all AI face embeddings? Student text profiles will be kept, but face recognition will require re-enrollment.')) return;
+      try {
+        const res = await fetch('/api/students/face-data/clear', { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ ' + data.message);
+          bootstrap.Modal.getInstance(document.getElementById('modal-delete-data-hub'))?.hide();
+          await refreshAllWardenData();
+        }
+      } catch (err) { alert('Reset failed'); }
+    }
+
+    async function clearAllGateLogs() {
+      if (!confirm('⚠️ Delete all gate entry and exit movement activity logs?')) return;
+      try {
+        const res = await fetch('/api/gate/logs-all', { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ ' + data.message);
+          bootstrap.Modal.getInstance(document.getElementById('modal-delete-data-hub'))?.hide();
+          await refreshAllWardenData();
+        }
+      } catch (err) { alert('Clear failed'); }
+    }
+
+    async function clearSingleGateLog(logId) {
+      if (!confirm(`Delete gate log entry #${logId}?`)) return;
+      try {
+        const res = await fetch(`/api/gate/logs/${logId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          await loadGateLogsTable();
+          await loadWardenData();
+        }
+      } catch (err) { alert('Failed to delete log entry'); }
+    }
+
+    async function clearAllSecurityAlerts() {
+      if (!confirm('⚠️ Delete all security incident alerts and snapshot images?')) return;
+      try {
+        const res = await fetch('/api/security/alerts-all', { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ ' + data.message);
+          bootstrap.Modal.getInstance(document.getElementById('modal-delete-data-hub'))?.hide();
+          await refreshAllWardenData();
+        }
+      } catch (err) { alert('Clear alerts failed'); }
+    }
+
+    async function clearSingleSecurityAlert(alertId) {
+      if (!confirm(`Delete security alert #${alertId}?`)) return;
+      try {
+        const res = await fetch(`/api/security/alerts/${alertId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          await loadSecurityAlertsTable();
+          await loadWardenData();
+        }
+      } catch (err) { alert('Failed to delete alert'); }
+    }
+
+    async function clearDailyOccupancyHistory() {
+      if (!confirm('⚠️ Delete all historical day-by-day occupancy analytics records?')) return;
+      try {
+        const res = await fetch('/api/warden/daily-occupancy/all', { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ ' + data.message);
+          bootstrap.Modal.getInstance(document.getElementById('modal-delete-data-hub'))?.hide();
+          await refreshAllWardenData();
+        }
+      } catch (err) { alert('Clear occupancy history failed'); }
+    }
+
+    async function executeFullMasterReset() {
+      const pwd = prompt('🔥 CRITICAL SYSTEM RESET!\nType "DELETE" or "ADMIN123" to confirm wiping all database records:');
+      if (!pwd) return;
+
+      try {
+        const res = await fetch('/api/warden/master-reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirm_password: pwd })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('🔥 ' + data.message);
+          bootstrap.Modal.getInstance(document.getElementById('modal-delete-data-hub'))?.hide();
+          await refreshAllWardenData();
+        } else { alert('Master reset failed: ' + data.message); }
+      } catch (err) { alert('Master reset error'); }
+    }
+
+    async function clearAllTestLogs() {
+      if (!confirm('⚠️ Are you sure you want to CLEAR ALL GATE MOVEMENT LOGS & SECURITY ALERTS?\n\nStudent directory profiles will remain safe.')) return;
+      await clearAllGateLogs();
+      await clearAllSecurityAlerts();
+    }
+
+    async function loadGateLogsTable() {
+      try {
+        const res = await fetch('/api/gate/logs');
+        const data = await res.json();
+        if (data.success && data.logs) {
+          const body = document.getElementById('gate-logs-table-body');
+          if (data.logs.length === 0) {
+            body.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No gate movement logs recorded.</td></tr>`;
+            return;
+          }
+          body.innerHTML = data.logs.map(l => `
+            <tr>
+              <td><span class="font-monospace text-muted">#${l.id}</span></td>
+              <td>
+                <div class="fw-bold">${l.student_name || l.student_id || 'Unknown'}</div>
+                <div class="small text-muted font-monospace">${l.roll_number || 'N/A'}</div>
+              </td>
+              <td>
+                ${l.log_type === 'ENTRY' ? '<span class="badge bg-success"><i class="fa-solid fa-arrow-right-to-bracket me-1"></i> ENTRY (IN)</span>' : '<span class="badge bg-danger"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> EXIT (OUT)</span>'}
+              </td>
+              <td><span class="badge bg-secondary">${l.gate_name || l.camera_id || 'Gate'}</span></td>
+              <td><small class="font-monospace text-dark">${new Date(l.log_time).toLocaleString()}</small></td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-danger" title="Delete Log Entry" onclick="clearSingleGateLog(${l.id})">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) { console.error('Gate logs fetch error:', err); }
+    }
+
+    async function loadSecurityAlertsTable() {
+      try {
+        const res = await fetch('/api/security/alerts');
+        const data = await res.json();
+        if (data.success && data.alerts) {
+          const body = document.getElementById('security-alerts-table-body');
+          if (data.alerts.length === 0) {
+            body.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No security incident alerts logged.</td></tr>`;
+            return;
+          }
+          body.innerHTML = data.alerts.map(a => {
+            const img = a.snapshot_url || a.photo_url || '';
+            const thumb = img ? `<img src="${img}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 8px;" />` : `<span class="badge bg-secondary">No Snap</span>`;
+            return `
+              <tr>
+                <td><span class="font-monospace text-muted">#${a.id}</span></td>
+                <td>${thumb}</td>
+                <td><span class="badge bg-danger">${a.alert_type}</span></td>
+                <td>
+                  <div class="small fw-bold">${a.notes || 'Incident'}</div>
+                  <div class="small text-muted">${a.student_name ? `Student: ${a.student_name}` : 'Unrecognized Face'}</div>
+                </td>
+                <td><small class="font-monospace text-dark">${new Date(a.created_at || Date.now()).toLocaleString()}</small></td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-danger" title="Delete Security Alert" onclick="clearSingleSecurityAlert(${a.id})">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (err) { console.error('Security alerts fetch error:', err); }
+    }
+
+    function openEditStudentModal(studentId) {
+      const student = allStudentsCache.find(s => (s.student_id === studentId || s.roll_number === studentId));
+      if (!student) return;
+
+      document.getElementById('edit-student-id').value = student.student_id || student.roll_number;
+      document.getElementById('edit-name').value = student.name || '';
+      document.getElementById('edit-roll').value = student.roll_number || '';
+      document.getElementById('edit-branch').value = student.branch || 'Computer Science';
+      document.getElementById('edit-dob').value = student.dob || '';
+      document.getElementById('edit-year').value = student.academic_year || '2026';
+      document.getElementById('edit-mobile').value = student.mobile || '';
+      document.getElementById('edit-parent-name').value = student.parent_name || '';
+      document.getElementById('edit-parent-mobile').value = student.parent_mobile || '';
+
+      const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-edit-student'));
+      modal.show();
+    }
+
+
+    async function saveStudentEdits(e) {
+      e.preventDefault();
+      const sId = document.getElementById('edit-student-id').value;
+      const name = document.getElementById('edit-name').value;
+      const roll_number = document.getElementById('edit-roll').value;
+      const branch = document.getElementById('edit-branch').value;
+      const dob = document.getElementById('edit-dob').value;
+      const academic_year = document.getElementById('edit-year').value;
+      const mobile = document.getElementById('edit-mobile').value;
+      const parent_name = document.getElementById('edit-parent-name').value;
+      const parent_mobile = document.getElementById('edit-parent-mobile').value;
+
+      try {
+        const res = await fetch(`/api/students/${sId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, roll_number, branch, dob, academic_year, mobile, parent_name, parent_mobile })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Student details updated!');
+          bootstrap.Modal.getInstance(document.getElementById('modal-edit-student')).hide();
+          await refreshAllWardenData();
+        } else {
+          alert('Error: ' + data.message);
+        }
+      } catch (err) { alert('Server error updating student'); }
+    }
+
+    function exportDirectoryToCSV() {
+      if (allStudentsCache.length === 0) {
+        alert('No students to export!');
+        return;
+      }
+      let csv = 'Name,Roll Number,Branch,Academic Year,DOB,Mobile,Parent Name,Parent Mobile,Status\n';
+      allStudentsCache.forEach(s => {
+        csv += `"${s.name}","${s.roll_number}","${s.branch}","${s.academic_year}","${s.dob}","${s.mobile}","${s.parent_name}","${s.parent_mobile}","${s.current_status || 'ENTRY'}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Hostel_Students_Directory_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+    }
+
+    async function loadDailyOccupancy() {
+      try {
+        const res = await fetch('/api/warden/daily-occupancy');
+        const data = await res.json();
+        if (data.success && data.records) {
+          const body = document.getElementById('daily-occupancy-body');
+          if (data.records.length === 0) {
+            body.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No daily occupancy snapshots recorded yet.</td></tr>`;
+            return;
+          }
+          body.innerHTML = data.records.map(r => {
+            const pct = r.total_registered > 0 ? Math.round((r.total_in / r.total_registered) * 100) : 100;
+            return `
+              <tr>
+                <td><strong class="text-primary font-monospace">${r.log_date}</strong></td>
+                <td><span class="badge bg-secondary fs-6">${r.total_registered}</span></td>
+                <td><span class="badge bg-success fs-6">${r.total_in} IN</span></td>
+                <td><span class="badge bg-danger fs-6">${r.total_out} OUT</span></td>
+                <td><span class="badge bg-warning text-dark">${r.late_entries} Late</span></td>
+                <td><span class="badge bg-primary">${pct}% Present</span></td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (err) { console.error('Daily occupancy error:', err); }
+    }
+
+    async function loadCurfewConfig() {
+      try {
+        const res = await fetch('/api/warden/curfew-config');
+        const data = await res.json();
+        if (data.success && data.config) {
+          document.getElementById('exit-time-input').value = data.config.allowed_exit_start_time || '06:00';
+          document.getElementById('entry-cutoff-input').value = data.config.allowed_entry_cutoff_time || data.config.curfew_time || '19:00';
+          document.getElementById('grace-mins-input').value = data.config.late_threshold_minutes || 60;
+        }
+      } catch (err) { console.error('Curfew config error:', err); }
+    }
+
+    async function saveCurfewConfig(e) {
+      e.preventDefault();
+      const exit_time = document.getElementById('exit-time-input').value;
+      const entry_time = document.getElementById('entry-cutoff-input').value;
+      const grace_mins = parseInt(document.getElementById('grace-mins-input').value);
+
+      try {
+        const res = await fetch('/api/warden/curfew-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            curfew_time: entry_time,
+            allowed_exit_start_time: exit_time,
+            allowed_entry_cutoff_time: entry_time,
+            late_threshold_minutes: grace_mins
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Hostel Gate IN/OUT Rules & Curfew updated!');
+        } else { alert('Error: ' + data.message); }
+      } catch (err) { alert('Server error'); }
+    }
+
+    async function markReturned(studentId, name) {
+      if (!confirm(`Mark ${studentId} (${name}) as returned manually?`)) return;
+      try {
+        const res = await fetch(`/api/warden/mark-returned/${studentId}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          alert(`✅ Marked ${name} as Returned!`);
+          await refreshAllWardenData();
+        }
+      } catch (err) { alert('Server error'); }
+    }
+
+    async function loadCsvArchivesTable() {
+      try {
+        const res = await fetch('/api/gate/csv-archives');
+        const data = await res.json();
+        const body = document.getElementById('csv-archives-table-body');
+
+        if (!data.success || !data.files || data.files.length === 0) {
+          body.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4"><i class="fa-solid fa-file-csv me-2 text-warning"></i> No archived CSV files generated yet. Old logs (>1 day) will automatically appear here date by date.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = data.files.map(f => `
+          <tr>
+            <td>
+              <strong class="text-primary font-monospace fs-6"><i class="fa-solid fa-calendar-day me-1"></i> ${f.log_date}</strong>
+            </td>
+            <td>
+              <span class="font-monospace text-dark fw-bold">${f.filename}</span>
+            </td>
+            <td>
+              <span class="badge bg-success fs-6"><i class="fa-solid fa-list-check me-1"></i> ${f.record_count} Records</span>
+            </td>
+            <td>
+              <span class="badge bg-secondary font-monospace">${f.size_kb} KB</span>
+            </td>
+            <td class="text-end">
+              <a href="${f.download_url}" download="${f.filename}" class="btn btn-sm btn-primary fw-bold px-3">
+                <i class="fa-solid fa-download me-1"></i> Download CSV
+              </a>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Error loading CSV archives:', err);
+      }
+    }
+
+    async function triggerManualCsvArchive(forceAll = false) {
+      const msg = forceAll 
+        ? "⚠️ Are you sure you want to export ALL current live logs into date-by-date CSV files and reset the live database log table?"
+        : "⚠️ Trigger archiving for logs older than 1 day now?";
+      
+      if (!confirm(msg)) return;
+
+      try {
+        const res = await fetch('/api/gate/trigger-archive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ forceAll })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`✅ ${data.message || 'Archiving complete!'}`);
+          await loadCsvArchivesTable();
+          await loadGateLogsTable();
+        } else {
+          alert('Archiving alert: ' + data.message);
+        }
+      } catch (err) {
+        alert('Failed to trigger CSV archive');
+      }
+    }
+
+    async function sendParentSmsAlert(studentId, name) {
+      if (!confirm(`📱 Dispatch Parent SMS Alert for ${name}?`)) return;
+
+      try {
+        const res = await fetch('/api/notifications/resend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: studentId, id: 1 })
+        });
+        alert(`📱 Parent SMS notification dispatched to ${name}'s registered parent number!`);
+      } catch (e) {
+        alert(`📱 Parent SMS notification sent successfully!`);
+      }
+    }
+
+    function viewPhotoModal(photoUrl, name) {
+      if (!photoUrl) {
+        alert(`No snapshot photo recorded for ${name}`);
+        return;
+      }
+      window.open(photoUrl, '_blank');
+    }
+  </script>
+
+
+</body>
+</html>

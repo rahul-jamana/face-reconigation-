@@ -163,6 +163,24 @@ async function initDatabase() {
         if (!colNames.includes('emergency_contact')) {
           db.run("ALTER TABLE students ADD COLUMN emergency_contact TEXT");
         }
+        if (!colNames.includes('department')) {
+          db.run("ALTER TABLE students ADD COLUMN department TEXT DEFAULT 'General'");
+        }
+        if (!colNames.includes('dob')) {
+          db.run("ALTER TABLE students ADD COLUMN dob TEXT");
+        }
+        if (!colNames.includes('academic_year')) {
+          db.run("ALTER TABLE students ADD COLUMN academic_year TEXT DEFAULT '2026'");
+        }
+
+        // Alter student_face_data if frame_count missing
+        try {
+          const sfdColumns = await dbQuery("PRAGMA table_info(student_face_data)");
+          const sfdNames = sfdColumns.map(c => c.name);
+          if (sfdNames.length > 0 && !sfdNames.includes('frame_count')) {
+            db.run("ALTER TABLE student_face_data ADD COLUMN frame_count INTEGER DEFAULT 30");
+          }
+        } catch (e) {}
 
         // Face Embeddings Table
         db.run(`
@@ -227,6 +245,258 @@ async function initDatabase() {
           )
         `);
 
+        // HOSTEL EDITION TABLES
+        // 1. Student Multi-Pose Face Registration Table
+        await dbRun(`
+          CREATE TABLE IF NOT EXISTS student_face_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id TEXT NOT NULL,
+            roll_number TEXT,
+            face_embedding TEXT,
+            photo_url TEXT,
+            pose_front TEXT,
+            pose_left TEXT,
+            pose_right TEXT,
+            pose_up TEXT,
+            pose_down TEXT,
+            frame_count INTEGER DEFAULT 30,
+            registration_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            status TEXT DEFAULT 'ACTIVE'
+          )
+        `);
+
+        // 2. Gate Entry / Exit Logs Table
+        await dbRun(`
+          CREATE TABLE IF NOT EXISTS gate_entry_exit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id TEXT,
+            roll_number TEXT,
+            log_type TEXT CHECK(log_type IN ('ENTRY','EXIT')),
+            camera_id TEXT,
+            gate_name TEXT DEFAULT 'Main Hostel Gate',
+            log_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            face_matched INTEGER DEFAULT 0,
+            face_confidence REAL,
+            anti_spoof_passed INTEGER DEFAULT 1,
+            alert_type TEXT DEFAULT 'NONE',
+            photo_url TEXT,
+            notes TEXT,
+            late_minutes INTEGER DEFAULT 0,
+            is_late INTEGER DEFAULT 0,
+            is_missing INTEGER DEFAULT 0,
+            parent_notified INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+
+        // Migration helper for gate_entry_exit_logs columns
+        try {
+          const gateCols = await dbQuery("PRAGMA table_info(gate_entry_exit_logs)");
+          const gColNames = gateCols.map(c => c.name);
+          if (!gColNames.includes('late_minutes')) await dbRun("ALTER TABLE gate_entry_exit_logs ADD COLUMN late_minutes INTEGER DEFAULT 0");
+          if (!gColNames.includes('is_late')) await dbRun("ALTER TABLE gate_entry_exit_logs ADD COLUMN is_late INTEGER DEFAULT 0");
+          if (!gColNames.includes('is_missing')) await dbRun("ALTER TABLE gate_entry_exit_logs ADD COLUMN is_missing INTEGER DEFAULT 0");
+          if (!gColNames.includes('parent_notified')) await dbRun("ALTER TABLE gate_entry_exit_logs ADD COLUMN parent_notified INTEGER DEFAULT 0");
+        } catch (e) {}
+
+        // New Table: hostel_daily_stats
+        await dbRun(`
+          CREATE TABLE IF NOT EXISTS hostel_daily_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            hostel_id INTEGER DEFAULT 1,
+            hostel_name TEXT DEFAULT 'Boys Hostel A',
+            stat_date TEXT,
+            total_in INTEGER DEFAULT 0,
+            total_out INTEGER DEFAULT 0,
+            late_count INTEGER DEFAULT 0,
+            missing_count INTEGER DEFAULT 0,
+            unknown_count INTEGER DEFAULT 0,
+            spoof_count INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+
+        // Bus System Tables
+        await dbRun(`
+          CREATE TABLE IF NOT EXISTS buses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            bus_number TEXT NOT NULL,
+            route_name TEXT,
+            driver_name TEXT,
+            driver_phone TEXT,
+            conductor_name TEXT,
+            conductor_phone TEXT,
+            capacity INTEGER DEFAULT 40,
+            is_active INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+
+        await dbRun(`
+          CREATE TABLE IF NOT EXISTS bus_routes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            route_name TEXT NOT NULL,
+            stop_name TEXT NOT NULL,
+            stop_order INTEGER DEFAULT 1,
+            pickup_time TEXT,
+            drop_time TEXT,
+            is_active INTEGER DEFAULT 1
+          )
+        `);
+
+        await dbRun(`
+          CREATE TABLE IF NOT EXISTS bus_registrations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER NOT NULL,
+            bus_id INTEGER NOT NULL,
+            route_id INTEGER NOT NULL,
+            stop_id INTEGER,
+            academic_year TEXT DEFAULT '2026',
+            fee_status TEXT DEFAULT 'PAID',
+            is_active INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+
+        await dbRun(`
+          CREATE TABLE IF NOT EXISTS bus_boarding_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER,
+            roll_number TEXT,
+            bus_id INTEGER,
+            route_id INTEGER,
+            log_type TEXT NOT NULL,
+            log_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            face_matched INTEGER DEFAULT 0,
+            face_confidence REAL DEFAULT 0,
+            gps_lat REAL,
+            gps_lng REAL,
+            alert_type TEXT DEFAULT 'NONE',
+            photo_url TEXT,
+            parent_notified INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+
+        await dbRun(`
+          CREATE TABLE IF NOT EXISTS transport_fees (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER NOT NULL,
+            academic_year TEXT DEFAULT '2026',
+            total_fee REAL DEFAULT 15000.00,
+            paid_amount REAL DEFAULT 15000.00,
+            pending_amount REAL DEFAULT 0.00,
+            status TEXT DEFAULT 'PAID',
+            due_date TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+
+        // Seed Sample Buses if empty
+        const busCount = await dbGet('SELECT COUNT(*) as count FROM buses');
+        if (busCount.count === 0) {
+          await dbRun(
+            `INSERT INTO buses (bus_number, route_name, driver_name, driver_phone, conductor_name, conductor_phone, capacity) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            ['Bus #4', 'Khordha', 'Ramesh Kumar', '+91 9876500004', 'Hari Das', '+91 9876500014', 45]
+          );
+          await dbRun(
+            `INSERT INTO buses (bus_number, route_name, driver_name, driver_phone, conductor_name, conductor_phone, capacity) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            ['Bus #1', 'Bhubaneswar', 'Suresh Mohanty', '+91 9876500001', 'Prakash Nayak', '+91 9876500011', 50]
+          );
+          await dbRun(
+            `INSERT INTO buses (bus_number, route_name, driver_name, driver_phone, conductor_name, conductor_phone, capacity) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            ['Bus #2', 'Cuttack', 'Bikash Rout', '+91 9876500002', 'Litu Behera', '+91 9876500012', 40]
+          );
+          console.log('Seeded sample buses (Bus #4, Bus #1, Bus #2)');
+        }
+
+        // Seed Sample Routes if empty
+        const routeCount = await dbGet('SELECT COUNT(*) as count FROM bus_routes');
+        if (routeCount.count === 0) {
+          await dbRun(`INSERT INTO bus_routes (route_name, stop_name, stop_order, pickup_time, drop_time) VALUES ('Khordha', 'Khordha Bypass', 1, '07:30 AM', '06:15 PM')`);
+          await dbRun(`INSERT INTO bus_routes (route_name, stop_name, stop_order, pickup_time, drop_time) VALUES ('Khordha', 'Pitapalli Square', 2, '07:45 AM', '06:30 PM')`);
+          await dbRun(`INSERT INTO bus_routes (route_name, stop_name, stop_order, pickup_time, drop_time) VALUES ('Khordha', 'BEC Campus Gate', 3, '09:00 AM', '05:00 PM')`);
+          await dbRun(`INSERT INTO bus_routes (route_name, stop_name, stop_order, pickup_time, drop_time) VALUES ('Bhubaneswar', 'Master Canteen', 1, '07:15 AM', '06:45 PM')`);
+          await dbRun(`INSERT INTO bus_routes (route_name, stop_name, stop_order, pickup_time, drop_time) VALUES ('Bhubaneswar', 'Khandagiri Square', 2, '07:40 AM', '06:20 PM')`);
+          console.log('Seeded sample bus routes for Khordha and Bhubaneswar');
+        }
+
+        // Check if student Munu Nial (BEC26081) exists, if not seed him
+        let munu = await dbGet('SELECT * FROM students WHERE roll_number = ? OR name = ?', ['BEC26081', 'Munu Nial']);
+        if (!munu) {
+          const res = await dbRun(
+            `INSERT INTO students (student_id, name, roll_number, registration_number, branch, department, semester, section, mobile, phone, email, address, parent_name, parent_mobile, face_enrolled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            ['STU-26081', 'Munu Nial', 'BEC26081', 'REG-2026-081', 'Computer Science', 'Computer Science', 'Semester 4', 'A', '+91 9998887770', '+91 9998887770', 'munu.nial@bec.edu.in', 'Khordha, Odisha', 'Subash Nial', '+91 9998887771', 1]
+          );
+          const munuId = res.id;
+          // Seed transport registration & transport fee for Munu Nial
+          await dbRun(
+            `INSERT INTO bus_registrations (student_id, bus_id, route_id, stop_id, academic_year, fee_status) VALUES (?, 1, 2, 2, '2026', 'PAID')`,
+            [munuId]
+          );
+          await dbRun(
+            `INSERT INTO transport_fees (student_id, academic_year, total_fee, paid_amount, pending_amount, status) VALUES (?, '2026', 15000, 15000, 0, 'PAID')`,
+            [munuId]
+          );
+        }
+
+
+        // 3. Hostel Curfew & In/Out Configuration Table
+        await dbRun(`
+          CREATE TABLE IF NOT EXISTS hostel_curfew_config (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            hostel_id INTEGER DEFAULT 1,
+            hostel_name TEXT DEFAULT 'Main Boys & Girls Hostel',
+            curfew_time TEXT DEFAULT '19:00:00',
+            allowed_exit_start_time TEXT DEFAULT '06:00:00',
+            allowed_entry_cutoff_time TEXT DEFAULT '19:00:00',
+            late_threshold_minutes INTEGER DEFAULT 60,
+            alert_time TEXT DEFAULT '20:00:00',
+            is_active INTEGER DEFAULT 1
+          )
+        `);
+
+        // 4. Daily Occupancy Log Table (Day-by-Day Historical Analytics)
+        await dbRun(`
+          CREATE TABLE IF NOT EXISTS hostel_daily_occupancy (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            log_date TEXT UNIQUE,
+            total_registered INTEGER DEFAULT 0,
+            total_in INTEGER DEFAULT 0,
+            total_out INTEGER DEFAULT 0,
+            late_entries INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+
+        // 5. Security Alerts Table
+        await dbRun(`
+          CREATE TABLE IF NOT EXISTS security_alerts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            alert_type TEXT,
+            camera_id TEXT,
+            student_id TEXT,
+            gate_name TEXT DEFAULT 'Main Gate',
+            image_snapshot TEXT,
+            photo_url TEXT,
+            is_acknowledged INTEGER DEFAULT 0,
+            detected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            acknowledged_by TEXT,
+            acknowledged_at DATETIME,
+            notes TEXT
+          )
+        `);
+
+        // Seed Default Hostel Curfew Config if empty
+        const curfewCount = await dbGet('SELECT COUNT(*) as count FROM hostel_curfew_config');
+        if (curfewCount.count === 0) {
+          await dbRun(
+            `INSERT INTO hostel_curfew_config (hostel_id, hostel_name, curfew_time, late_threshold_minutes, alert_time, is_active) VALUES (?, ?, ?, ?, ?, ?)`,
+            [1, 'Main Hostel Block A', '19:00:00', 60, '20:00:00', 1]
+          );
+        }
+
         // Seed Users if empty
         const userCount = await dbGet('SELECT COUNT(*) as count FROM users');
         if (userCount.count === 0) {
@@ -234,6 +504,8 @@ async function initDatabase() {
           const adminPass = await bcrypt.hash('admin123', salt);
           const teacherPass = await bcrypt.hash('teacher123', salt);
           const studentPass = await bcrypt.hash('student123', salt);
+          const wardenPass = await bcrypt.hash('warden123', salt);
+          const securityPass = await bcrypt.hash('security123', salt);
 
           await dbRun(
             `INSERT INTO users (username, password_hash, role, name, email) VALUES (?, ?, ?, ?, ?)`,
@@ -247,7 +519,15 @@ async function initDatabase() {
             `INSERT INTO users (username, password_hash, role, name, email) VALUES (?, ?, ?, ?, ?)`,
             ['student', studentPass, 'student', 'Rahul Kumar', 'rahul.k@institution.edu']
           );
-          console.log('Seeded default users (admin/admin123, teacher/teacher123, student/student123)');
+          await dbRun(
+            `INSERT INTO users (username, password_hash, role, name, email) VALUES (?, ?, ?, ?, ?)`,
+            ['warden', wardenPass, 'admin', 'Chief Hostel Warden', 'warden@institution.edu']
+          );
+          await dbRun(
+            `INSERT INTO users (username, password_hash, role, name, email) VALUES (?, ?, ?, ?, ?)`,
+            ['security', securityPass, 'admin', 'Head Security Guard', 'security@institution.edu']
+          );
+          console.log('Seeded default users (admin/admin123, teacher/teacher123, student/student123, warden/warden123, security/security123)');
         }
 
         // Seed Sample Students if empty

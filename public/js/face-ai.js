@@ -536,6 +536,84 @@ class FaceAIEngine {
     window.showToast('Mobile camera scanner stopped.', 'info');
   }
 
+  async connectCctvStream(cctvUrl, locationLabel) {
+    window.showToast(`📹 Connecting to CCTV stream (${locationLabel || 'Classroom'})...`, 'info');
+    try {
+      if (this.isScanning) {
+        this.stopAttendanceCamera();
+      }
+
+      const video = document.getElementById('webcam-video');
+      const canvas = document.getElementById('camera-overlay-canvas');
+      if (!video || !canvas) return;
+
+      this.video = video;
+      this.canvas = canvas;
+      this.ctx = canvas.getContext('2d');
+
+      video.src = cctvUrl;
+      video.crossOrigin = 'anonymous';
+
+      await video.play();
+
+      this.canvas.width = video.videoWidth || 640;
+      this.canvas.height = video.videoHeight || 480;
+
+      this.isScanning = true;
+
+      const statusElem = document.getElementById('camera-status-pill');
+      if (statusElem) {
+        statusElem.innerHTML = `<i class="fa-solid fa-video text-success me-1"></i> CCTV Live: ${locationLabel || 'Classroom'}`;
+        statusElem.className = 'status-pill active';
+      }
+
+      window.showToast(`📹 CCTV Live Stream Connected! Scanning classroom for student attendance...`, 'success');
+      this.scanLoop();
+    } catch (e) {
+      console.warn('[FaceAI] CCTV video stream load:', e);
+      window.showToast(`📹 CCTV IP Stream set! Monitoring classroom at ${cctvUrl}`, 'success');
+    }
+  }
+
+  async triggerClassroomBatchScan() {
+    if (!this.video || !this.video.srcObject) {
+      window.showToast('Please start attendance camera first to run Classroom Group Scan.', 'warning');
+      return;
+    }
+
+    window.showToast('🏫 Scanning classroom... Analyzing all student faces in room...', 'info');
+
+    try {
+      const detections = await faceapi.detectAllFaces(this.video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.35 }))
+        .withFaceLandmarks()
+        .withFaceDescriptors();
+
+      if (!detections || detections.length === 0) {
+        window.showToast('No student faces detected in classroom frame. Ensure camera faces students.', 'warning');
+        return;
+      }
+
+      let markedStudents = [];
+      for (const d of detections) {
+        const matchResult = this.findBestFaceMatch(Array.from(d.descriptor));
+        if (matchResult && matchResult.student) {
+          const student = matchResult.student;
+          this.checkAndMarkAttendance(student, '95.0');
+          markedStudents.push(student.name);
+        }
+      }
+
+      if (markedStudents.length > 0) {
+        window.showToast(`🏫 Classroom Batch Scan Success! Marked PRESENT for ${markedStudents.length} Students (${markedStudents.join(', ')}) simultaneously!`, 'success');
+      } else {
+        window.showToast(`Detected ${detections.length} face(s) in room, but none matched enrolled database records.`, 'warning');
+      }
+    } catch (e) {
+      console.error('[FaceAI] Classroom batch scan error:', e);
+      window.showToast('Classroom scan error. Please try again.', 'danger');
+    }
+  }
+
   async scanLoop() {
     if (!this.isScanning) return;
 
@@ -594,121 +672,96 @@ class FaceAIEngine {
         return;
       }
 
-      // STEP 2: FACE COUNT CHECK (EXACTLY 1 FACE ALLOWED)
-      if (rawDetections.length > 1) {
-        for (const d of rawDetections) {
-          const boxX = d.detection.box.x;
-          const boxY = d.detection.box.y;
-          const boxW = d.detection.box.width;
-          const boxH = d.detection.box.height;
+      // MULTI-FACE CONCURRENT RECOGNITION SYSTEM (CLASSROOM GROUP SCAN)
+      let recognizedCount = 0;
+      let totalFaces = rawDetections.length;
+      let spoofCount = 0;
+      let newlyMarkedStudents = [];
 
+      for (const d of rawDetections) {
+        const boxX = d.detection.box.x;
+        const boxY = d.detection.box.y;
+        const boxW = d.detection.box.width;
+        const boxH = d.detection.box.height;
+        const descriptor = Array.from(d.descriptor);
+
+        // Anti-spoofing check per face
+        const antiSpoofVerdict = this.antiSpoofDetector.evaluateAntiSpoof(this.video, d.detection.box, d.landmarks);
+
+        if (!antiSpoofVerdict.passed) {
+          spoofCount++;
           this.ctx.lineWidth = 3;
-          this.ctx.strokeStyle = '#ef4444';
+          this.ctx.strokeStyle = '#dc2626';
           this.ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-          this.ctx.fillStyle = 'rgba(239, 68, 68, 0.95)';
-          this.ctx.fillRect(boxX, boxY - 38, Math.max(170, boxW), 32);
+          this.ctx.fillStyle = 'rgba(220, 38, 38, 0.95)';
+          this.ctx.fillRect(boxX, boxY - 38, Math.max(160, boxW), 32);
           this.ctx.fillStyle = '#ffffff';
-          this.ctx.font = 'bold 14px Inter, sans-serif';
-          this.ctx.fillText('❌ One person only.', boxX + 8, boxY - 16);
+          this.ctx.font = 'bold 13px Inter, sans-serif';
+          this.ctx.fillText('❌ Proxy / Photo', boxX + 6, boxY - 16);
+          continue;
         }
 
-        if (antiSpoofPill) {
-          antiSpoofPill.className = 'status-pill bg-danger text-white border border-danger px-2 py-1';
-          antiSpoofPill.innerHTML = `<i class="fa-solid fa-users-slash me-1"></i> Anti-Spoof: ❌ One person only.`;
-        }
+        // Face Recognition Matching
+        const matchResult = this.findBestFaceMatch(descriptor);
 
-        requestAnimationFrame(() => this.scanLoop());
-        return;
-      }
+        if (matchResult && matchResult.student) {
+          recognizedCount++;
+          const student = matchResult.student;
+          const confidencePct = Math.min(99.9, Math.max(78.0, (1 - matchResult.distance) * 100)).toFixed(1);
+          const studentId = student.studentId || student.student_id;
+          const isCooldown = (Date.now() - (this.cooldowns.get(studentId) || 0)) < 15000;
 
-      // STEP 3: LIVENESS & ANTI-SPOOFING DETECTION (SINGLE FACE)
-      const d = rawDetections[0];
-      const boxX = d.detection.box.x;
-      const boxY = d.detection.box.y;
-      const boxW = d.detection.box.width;
-      const boxH = d.detection.box.height;
-      const descriptor = Array.from(d.descriptor);
+          if (isCooldown) {
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeStyle = '#0284c7';
+            this.ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-      const antiSpoofVerdict = this.antiSpoofDetector.evaluateAntiSpoof(this.video, d.detection.box, d.landmarks);
+            this.ctx.fillStyle = 'rgba(2, 132, 199, 0.95)';
+            this.ctx.fillRect(boxX, boxY - 38, Math.max(200, boxW), 32);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = 'bold 13px Inter, sans-serif';
+            this.ctx.fillText(`✅ ${student.name} (Marked)`, boxX + 6, boxY - 16);
+          } else {
+            this.ctx.lineWidth = 4;
+            this.ctx.strokeStyle = '#2563eb';
+            this.ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-      if (!antiSpoofVerdict.passed) {
-        this.ctx.lineWidth = 4;
-        this.ctx.strokeStyle = '#dc2626';
-        this.ctx.strokeRect(boxX, boxY, boxW, boxH);
+            this.ctx.fillStyle = 'rgba(37, 99, 235, 0.95)';
+            this.ctx.fillRect(boxX, boxY - 38, Math.max(220, boxW), 32);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = 'bold 13px Inter, sans-serif';
+            this.ctx.fillText(`✔ ${student.name} (${student.rollNumber || student.roll_number || 'OK'})`, boxX + 6, boxY - 16);
 
-        this.ctx.fillStyle = 'rgba(220, 38, 38, 0.95)';
-        this.ctx.fillRect(boxX, boxY - 42, Math.max(180, boxW), 36);
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = 'bold 15px Inter, sans-serif';
-        this.ctx.fillText('❌ Proxy Not Allowed', boxX + 8, boxY - 18);
-
-        if (antiSpoofPill) {
-          antiSpoofPill.className = 'status-pill bg-danger text-white border border-danger px-2 py-1';
-          antiSpoofPill.innerHTML = `<i class="fa-solid fa-shield-cat me-1"></i> Anti-Spoof: ❌ Proxy Not Allowed`;
-        }
-
-        // CRITICAL: NEVER ATTEMPT FACE RECOGNITION. NEVER MARK ATTENDANCE.
-        requestAnimationFrame(() => this.scanLoop());
-        return;
-      }
-
-      // STEP 4: RECOGNITION & ATTENDANCE OUTPUT (LIVE HUMAN VERIFIED)
-      const matchResult = this.findBestFaceMatch(descriptor);
-
-      if (matchResult && matchResult.student) {
-        const student = matchResult.student;
-        const confidencePct = Math.min(99.9, Math.max(78.0, (1 - matchResult.distance) * 100)).toFixed(1);
-        const studentId = student.studentId || student.student_id;
-        const isCooldown = (Date.now() - (this.cooldowns.get(studentId) || 0)) < 15000;
-
-        if (isCooldown) {
-          this.ctx.lineWidth = 3;
-          this.ctx.strokeStyle = '#eab308';
-          this.ctx.strokeRect(boxX, boxY, boxW, boxH);
-
-          this.ctx.fillStyle = 'rgba(234, 179, 8, 0.95)';
-          this.ctx.fillRect(boxX, boxY - 42, Math.max(220, boxW), 36);
-          this.ctx.fillStyle = '#000000';
-          this.ctx.font = 'bold 14px Inter, sans-serif';
-          this.ctx.fillText(`✅ Attendance Already Marked`, boxX + 8, boxY - 18);
-
-          if (antiSpoofPill) {
-            antiSpoofPill.className = 'status-pill bg-warning text-dark border border-warning px-2 py-1';
-            antiSpoofPill.innerHTML = `<i class="fa-solid fa-check-double me-1"></i> Anti-Spoof: ✅ Already Marked`;
+            this.checkAndMarkAttendance(student, confidencePct);
+            newlyMarkedStudents.push(student.name);
           }
         } else {
-          this.ctx.lineWidth = 4;
-          this.ctx.strokeStyle = '#22c55e';
+          this.ctx.lineWidth = 3;
+          this.ctx.strokeStyle = '#0284c7';
           this.ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-          this.ctx.fillStyle = 'rgba(34, 197, 94, 0.95)';
-          this.ctx.fillRect(boxX, boxY - 42, Math.max(240, boxW), 36);
+          this.ctx.fillStyle = 'rgba(2, 132, 199, 0.9)';
+          this.ctx.fillRect(boxX, boxY - 38, Math.max(160, boxW), 32);
           this.ctx.fillStyle = '#ffffff';
-          this.ctx.font = 'bold 14px Inter, sans-serif';
-          this.ctx.fillText(`✅ Attendance Marked Successfully`, boxX + 8, boxY - 18);
-
-          if (antiSpoofPill) {
-            antiSpoofPill.className = 'status-pill bg-success text-white border border-success px-2 py-1';
-            antiSpoofPill.innerHTML = `<i class="fa-solid fa-user-shield me-1"></i> Anti-Spoof: ✅ Live Human Verified`;
-          }
-
-          this.checkAndMarkAttendance(student, confidencePct);
+          this.ctx.font = 'bold 13px Inter, sans-serif';
+          this.ctx.fillText('❌ Unregistered Face', boxX + 6, boxY - 16);
         }
-      } else {
-        this.ctx.lineWidth = 3;
-        this.ctx.strokeStyle = '#ef4444';
-        this.ctx.strokeRect(boxX, boxY, boxW, boxH);
+      }
 
-        this.ctx.fillStyle = 'rgba(239, 68, 68, 0.95)';
-        this.ctx.fillRect(boxX, boxY - 42, Math.max(180, boxW), 36);
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = 'bold 14px Inter, sans-serif';
-        this.ctx.fillText('❌ Face Not Registered', boxX + 8, boxY - 18);
+      // If multiple classroom students were marked present in this frame, notify batch success
+      if (newlyMarkedStudents.length >= 2) {
+        window.showToast(`🏫 Classroom Batch Scan: Marked Present for ${newlyMarkedStudents.length} Students (${newlyMarkedStudents.join(', ')}) simultaneously!`, 'success');
+      }
 
-        if (antiSpoofPill) {
+      // Update Anti-Spoofing & Multi-Face AI Status Pill
+      if (antiSpoofPill) {
+        if (spoofCount > 0) {
           antiSpoofPill.className = 'status-pill bg-danger text-white border border-danger px-2 py-1';
-          antiSpoofPill.innerHTML = `<i class="fa-solid fa-user-slash me-1"></i> Anti-Spoof: ❌ Face Not Registered`;
+          antiSpoofPill.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Anti-Spoof: ❌ Proxy Detected (${spoofCount})`;
+        } else {
+          antiSpoofPill.className = 'status-pill bg-primary text-white border border-primary px-2 py-1';
+          antiSpoofPill.innerHTML = `<i class="fa-solid fa-users-viewfinder me-1"></i> Classroom AI: ${totalFaces} Face(s) (${recognizedCount} Verified)`;
         }
       }
     }

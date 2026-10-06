@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Bus Routes — Admin Console</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    body { background-color: #f0f4f9; font-family: 'Segoe UI', system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand fw-bold" href="/admin/buses.html"><i class="fa-solid fa-arrow-left me-2"></i>Admin Console</a>
+      <span class="navbar-text text-white">Route & Stop Configuration</span>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-4 py-4">
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-route me-2"></i>Active Bus Routes & Pickup Points</h5>
+        <button class="btn btn-sm btn-primary rounded-pill" onclick="loadRoutes()"><i class="fa-solid fa-sync me-1"></i>Refresh</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Route Name</th>
+              <th>Stop Name</th>
+              <th>Stop Sequence Order</th>
+              <th>Morning Pickup</th>
+              <th>Evening Drop</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="routes-table">
+            <tr><td colspan="6" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading routes...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadRoutes() {
+      try {
+        const res = await fetch('/api/bus/routes');
+        const data = await res.json();
+        const tbody = document.getElementById('routes-table');
+        if (data.success && data.routes.length > 0) {
+          tbody.innerHTML = data.routes.map(r => `
+            <tr>
+              <td><strong class="text-primary">${r.route_name}</strong></td>
+              <td class="fw-bold text-dark">${r.stop_name}</td>
+              <td><span class="badge bg-secondary">Stop #${r.stop_order}</span></td>
+              <td>${r.pickup_time}</td>
+              <td>${r.drop_time}</td>
+              <td><span class="badge bg-success">ACTIVE</span></td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) {}
+    }
+    loadRoutes();
+  </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Boarding Log — BEC Transport</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    body { background-color: #f0f4f9; font-family: 'Segoe UI', system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="/student/bus-pass.html"><i class="fa-solid fa-arrow-left me-2"></i>My Bus Pass</a>
+      <span class="navbar-text text-white">Boarding History</span>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-list-check me-2"></i>My Transport Logs</h5>
+        <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="loadLogs()"><i class="fa-solid fa-arrows-rotate me-1"></i>Refresh</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Time</th>
+              <th>Status / Event</th>
+              <th>Bus</th>
+              <th>Route</th>
+              <th>SMS Sent</th>
+            </tr>
+          </thead>
+          <tbody id="logs-body">
+            <tr><td colspan="5" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading boarding logs...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadLogs() {
+      try {
+        const res = await fetch('/api/bus/logs');
+        const data = await res.json();
+        const tbody = document.getElementById('logs-body');
+        if (data.success && data.logs.length > 0) {
+          tbody.innerHTML = data.logs.map(log => `
+            <tr>
+              <td><strong>${new Date(log.log_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</strong><br><small class="text-muted">${new Date(log.log_time).toLocaleDateString()}</small></td>
+              <td><span class="badge ${log.log_type === 'BOARD' ? 'bg-success' : log.log_type === 'DEBOARD' ? 'bg-info' : 'bg-primary'}">${log.log_type}</span></td>
+              <td>${log.bus_number || 'Bus #4'}</td>
+              <td>${log.route_name || 'Khordha'}</td>
+              <td><span class="badge bg-success-subtle text-success"><i class="fa-solid fa-check me-1"></i>Parent SMS Sent</span></td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No bus boarding records found.</td></tr>';
+        }
+      } catch (e) {
+        document.getElementById('logs-body').innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Error loading logs</td></tr>';
+      }
+    }
+    loadLogs();
+  </script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bus Registrations — Admin Console</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    body { background-color: #f0f4f9; font-family: 'Segoe UI', system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand fw-bold" href="/admin/buses.html"><i class="fa-solid fa-arrow-left me-2"></i>Admin Console</a>
+      <span class="navbar-text text-white">Student Transport Registrations</span>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-4 py-4">
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-id-card-clip me-2"></i>Registered Transport Students</h5>
+        <button class="btn btn-sm btn-primary rounded-pill" onclick="loadRegs()"><i class="fa-solid fa-sync me-1"></i>Refresh List</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Student Name</th>
+              <th>Roll Number</th>
+              <th>Branch</th>
+              <th>Allocated Bus</th>
+              <th>Route</th>
+              <th>Fee Status</th>
+            </tr>
+          </thead>
+          <tbody id="regs-table">
+            <tr><td colspan="6" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading registrations...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadRegs() {
+      try {
+        const res = await fetch('/api/bus/registrations');
+        const data = await res.json();
+        const tbody = document.getElementById('regs-table');
+        if (data.success && data.registrations.length > 0) {
+          tbody.innerHTML = data.registrations.map(r => `
+            <tr>
+              <td class="fw-bold text-dark">${r.student_name}</td>
+              <td><span class="badge bg-secondary-subtle text-dark">${r.roll_number}</span></td>
+              <td>${r.branch}</td>
+              <td><span class="badge bg-primary-subtle text-primary">${r.bus_number}</span></td>
+              <td>${r.route_name}</td>
+              <td><span class="badge ${r.fee_status === 'PAID' ? 'bg-success' : 'bg-danger'}">${r.fee_status}</span></td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) {}
+    }
+    loadRegs();
+  </script>
+</body>
+</html>

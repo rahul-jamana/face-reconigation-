@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Driver Boarding Log — BEC Transport</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    body { background-color: #f0f4f9; font-family: 'Segoe UI', system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container-fluid px-3">
+      <a class="navbar-brand fw-bold" href="/driver/dashboard.html"><i class="fa-solid fa-arrow-left me-2"></i>Driver Console</a>
+      <span class="navbar-text text-white">Live Boarding Activity</span>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-clock-rotate-left me-2"></i>Recent Bus Gate Scans</h5>
+        <button class="btn btn-sm btn-primary rounded-pill" onclick="loadDriverLogs()"><i class="fa-solid fa-sync me-1"></i>Refresh</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Time</th>
+              <th>Student Name</th>
+              <th>Roll Number</th>
+              <th>Status</th>
+              <th>Alert</th>
+            </tr>
+          </thead>
+          <tbody id="driver-logs-body">
+            <tr><td colspan="5" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading logs...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadDriverLogs() {
+      try {
+        const res = await fetch('/api/bus/logs');
+        const data = await res.json();
+        const tbody = document.getElementById('driver-logs-body');
+        if (data.success && data.logs.length > 0) {
+          tbody.innerHTML = data.logs.map(l => `
+            <tr>
+              <td><strong>${new Date(l.log_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</strong></td>
+              <td class="fw-bold text-dark">${l.student_name || 'N/A'}</td>
+              <td><span class="badge bg-secondary-subtle text-dark">${l.roll_number}</span></td>
+              <td><span class="badge ${l.log_type === 'BOARD' ? 'bg-success' : 'bg-primary'}">${l.log_type}</span></td>
+              <td>${l.alert_type === 'NONE' ? '<span class="badge bg-success">OK</span>' : `<span class="badge bg-danger">${l.alert_type}</span>`}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) {}
+    }
+    loadDriverLogs();
+  </script>
+</body>
+</html>

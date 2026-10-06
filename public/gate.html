@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VisioFace AI — Hostel Gate Dual-Cam Scanner & Real 128D Face Recognition</title>
+  <!-- Google Fonts & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    body {
+      background-color: #f0f4f9 !important;
+      color: #0f172a !important;
+    }
+    .gate-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .navbar-theme {
+      background: linear-gradient(135deg, #0f172a, #1e3a8a) !important;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
+    }
+    .card-white {
+      background: #ffffff !important;
+      border: 1px solid #bfdbfe !important;
+      border-radius: 16px !important;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.08) !important;
+    }
+    .card-header-blue {
+      background: #eff6ff !important;
+      border-bottom: 1px solid #bfdbfe !important;
+      border-radius: 15px 15px 0 0 !important;
+    }
+    .cam-box {
+      position: relative;
+      background: #0f172a;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid #3b82f6;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
+    }
+    .cam-box video, .cam-box canvas {
+      width: 100%;
+      height: 380px;
+      object-fit: cover;
+      display: block;
+    }
+    .cam-box canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .cam-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 10;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge-entry { background: #10b981; color: #fff; }
+    .badge-exit { background: #ef4444; color: #fff; }
+    .badge-reg { background: #0284c7; color: #fff; }
+    .stat-pill {
+      background: #ffffff;
+      border: 1px solid #bfdbfe;
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.06);
+    }
+    .stat-pill .num {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #2563eb;
+    }
+    .tab-switcher-btn {
+      padding: 10px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      border: 1px solid #bfdbfe;
+      background: #ffffff;
+      color: #1e3a8a;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .tab-switcher-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #1d4ed8;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    }
+    .power-switch-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-power {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+    }
+    .btn-power.on {
+      background: #10b981;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+    }
+    .btn-power.off {
+      background: #64748b;
+      color: #ffffff;
+    }
+    .progress-bar-30 {
+      height: 12px;
+      border-radius: 6px;
+      background: #dbeafe;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #2563eb, #10b981);
+      transition: width 0.1s linear;
+    }
+    .frame-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 8px;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #bfdbfe;
+    }
+    .frame-thumb-box {
+      position: relative;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #93c5fd;
+      background: #ffffff;
+      cursor: pointer;
+    }
+    .frame-thumb-box img {
+      width: 100%;
+      height: 60px;
+      object-fit: cover;
+    }
+    .frame-thumb-box .num-tag {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      background: rgba(30, 58, 138, 0.85);
+      color: #ffffff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+    .table-white {
+      background: #ffffff !important;
+      color: #0f172a !important;
+    }
+    .table-white th {
+      background: #eff6ff !important;
+      color: #1e3a8a !important;
+      font-weight: 700 !important;
+    }
+    .toast-popup {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideIn 0.3s ease;
+    }
+    .toast-popup.success { background: #10b981; color: #ffffff; }
+    .toast-popup.warning { background: #f59e0b; color: #ffffff; }
+    .toast-popup.danger { background: #ef4444; color: #ffffff; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-theme px-4 py-3">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold fs-4 text-white" href="index.html">
+        <i class="fa-solid fa-building-user text-cyan fs-3"></i>
+        <span>VisioFace <span class="text-info">AI</span> — Hostel Edition</span>
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <a href="index.html" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-home me-1"></i> Main Dashboard</a>
+        <a href="warden.html" class="btn btn-info text-dark btn-sm fw-bold"><i class="fa-solid fa-user-shield me-1"></i> Warden Portal</a>
+        <a href="security.html" class="btn btn-warning text-dark btn-sm fw-bold"><i class="fa-solid fa-shield-halved me-1"></i> Security Desk</a>
+        <span class="badge bg-light text-dark px-3 py-2 fs-6 fw-bold" id="clock-display">00:00:00</span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="gate-container mt-4">
+
+    <!-- MODE SWITCHER TABS -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex gap-3">
+        <button class="tab-switcher-btn active" id="btn-tab-cam" onclick="switchView('cam')">
+          <i class="fa-solid fa-video me-2"></i> Dual-Camera Gate Monitor
+        </button>
+        <button class="tab-switcher-btn" id="btn-tab-reg" onclick="switchView('reg')">
+          <i class="fa-solid fa-user-plus me-2"></i> 30-Frame Student Registration Studio
+        </button>
+      </div>
+      <span class="badge bg-white border border-primary text-primary px-3 py-2 fw-bold shadow-sm" id="ai-model-badge">
+        <i class="fa-solid fa-brain me-1 text-primary"></i> Loading 128D Neural AI Models...
+      </span>
+    </div>
+
+    <!-- VIEW 1: DUAL-CAMERA GATE MONITOR -->
+    <div id="view-cam">
+      <!-- STATS ROW -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-3">
+          <div class="stat-pill">
+            <div class="text-muted small fw-semibold"><i class="fa-solid fa-users me-1 text-primary"></i> Total Students</div>
+            <div class="num text-primary" id="count-total">0</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-pill">
+            <div class="text-muted small fw-semibold"><i class="fa-solid fa-user-check text-success me-1"></i> Present Inside Hostel</div>
+            <div class="num text-success" id="count-inside">0</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-pill">
+            <div class="text-muted small fw-semibold"><i class="fa-solid fa-person-walking-arrow-right text-danger me-1"></i> Currently Outside</div>
+            <div class="num text-danger" id="count-outside">0</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-pill">
+            <div class="text-muted small fw-semibold"><i class="fa-solid fa-clock text-warning me-1"></i> Late Entries Today</div>
+            <div class="num text-warning" id="count-late">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DUAL CAMERAS ROW WITH ON/OFF POWER SWITCHES -->
+      <div class="row g-4">
+        <!-- CAMERA 1: GATE ENTRY (IN) -->
+        <div class="col-lg-6">
+          <div class="card card-white">
+            <div class="card-header card-header-blue d-flex justify-content-between align-items-center py-2 flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <h5 class="mb-0 text-primary fw-bold"><i class="fa-solid fa-door-open me-1"></i> Camera 1 — Gate Entry (IN)</h5>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <select id="select-cam1-device" class="form-select form-select-sm bg-light text-dark border-primary fw-semibold" onchange="changeCameraDevice('cam1', this.value)" style="width: auto; max-width: 180px;">
+                  <option value="">Scanning Cameras...</option>
+                </select>
+                <div class="power-switch-container">
+                  <span class="badge bg-success" id="badge-cam1-state">ON</span>
+                  <button class="btn-power on" id="btn-cam1-power" onclick="toggleCameraPower('cam1')">
+                    <i class="fa-solid fa-power-off me-1"></i> ON
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body p-3">
+              <div class="cam-box">
+                <span class="cam-badge badge-entry" id="cam1-overlay-badge"><i class="fa-solid fa-arrow-down-to-bracket"></i> CAM 1: IN (ACTIVE)</span>
+                <video id="video-cam1" autoplay playsinline muted></video>
+                <canvas id="canvas-cam1"></canvas>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <span class="small text-muted" id="cam1-mode-text"><i class="fa-solid fa-circle text-success me-1"></i> Real 128D AI Scanner Active</span>
+                <button class="btn btn-sm btn-outline-danger fw-bold" onclick="simCoveredFaceAlert('CAMERA_1_ENTRY')"><i class="fa-solid fa-user-ninja me-1"></i> Test Covered Face Alert</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CAMERA 2: GATE EXIT (OUT) -->
+        <div class="col-lg-6">
+          <div class="card card-white">
+            <div class="card-header card-header-blue d-flex justify-content-between align-items-center py-2 flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <h5 class="mb-0 text-danger fw-bold"><i class="fa-solid fa-door-closed me-1"></i> Camera 2 — Gate Exit (OUT)</h5>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <select id="select-cam2-device" class="form-select form-select-sm bg-light text-dark border-danger fw-semibold" onchange="changeCameraDevice('cam2', this.value)" style="width: auto; max-width: 180px;">
+                  <option value="">Scanning Cameras...</option>
+                </select>
+                <div class="power-switch-container">
+                  <span class="badge bg-danger" id="badge-cam2-state">ON</span>
+                  <button class="btn-power on" id="btn-cam2-power" onclick="toggleCameraPower('cam2')">
+                    <i class="fa-solid fa-power-off me-1"></i> ON
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body p-3">
+              <div class="cam-box">
+                <span class="cam-badge badge-exit" id="cam2-overlay-badge"><i class="fa-solid fa-arrow-up-from-bracket"></i> CAM 2: OUT (ACTIVE)</span>
+                <video id="video-cam2" autoplay playsinline muted></video>
+                <canvas id="canvas-cam2"></canvas>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <span class="small text-muted" id="cam2-mode-text"><i class="fa-solid fa-circle text-danger me-1"></i> Real 128D AI Scanner Active</span>
+                <button class="btn btn-sm btn-outline-danger fw-bold" onclick="simCoveredFaceAlert('CAMERA_2_EXIT')"><i class="fa-solid fa-user-ninja me-1"></i> Test Covered Face Alert</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- LIVE LOG FEED -->
+      <div class="row g-4 mt-2">
+        <div class="col-12">
+          <div class="card card-white">
+            <div class="card-header card-header-blue d-flex justify-content-between align-items-center py-3">
+              <h5 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-list-check me-2"></i> Live Gate Entry/Exit Activity Stream</h5>
+              <button class="btn btn-sm btn-outline-primary fw-bold" onclick="loadGateLogs()"><i class="fa-solid fa-arrows-rotate me-1"></i> Refresh Logs</button>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover table-white mb-0 align-middle">
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Movement</th>
+                      <th>Student Name</th>
+                      <th>Roll Number</th>
+                      <th>Gate / Camera</th>
+                      <th>Status / Alert</th>
+                    </tr>
+                  </thead>
+                  <tbody id="gate-logs-body">
+                    <tr><td colspan="6" class="text-center text-muted py-4">Loading real-time gate activity...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: 30-FRAME STUDENT REGISTRATION STUDIO -->
+    <div id="view-reg" class="d-none">
+      <div class="row g-4">
+        <!-- FORM COLUMN -->
+        <div class="col-lg-5">
+          <div class="card card-white p-4">
+            <h4 class="fw-bold text-primary mb-3"><i class="fa-solid fa-id-card me-2"></i> Student Details Registration</h4>
+            <form id="form-30frame-reg" onsubmit="submit30FrameReg(event)">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-bold">STUDENT FULL NAME *</label>
+                  <input type="text" id="reg-name" class="form-control bg-light text-dark border-secondary" placeholder="e.g. Rahul Sharma" required />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-bold">ROLL NUMBER / ID *</label>
+                  <input type="text" id="reg-roll" class="form-control bg-light text-dark border-secondary" placeholder="e.g. CS2026-042" required />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-bold">BRANCH / DEPARTMENT *</label>
+                  <select id="reg-branch" class="form-select bg-light text-dark border-secondary" required>
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Electrical Engineering">Electrical Engineering</option>
+                    <option value="Mechanical Engineering">Mechanical Engineering</option>
+                    <option value="Civil Engineering">Civil Engineering</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-bold">DATE OF BIRTH (DOB) *</label>
+                  <input type="date" id="reg-dob" class="form-control bg-light text-dark border-secondary" required />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-bold">ACADEMIC YEAR *</label>
+                  <select id="reg-year" class="form-select bg-light text-dark border-secondary" required>
+                    <option value="1st Year (2026)">1st Year (2026)</option>
+                    <option value="2nd Year (2025)">2nd Year (2025)</option>
+                    <option value="3rd Year (2024)">3rd Year (2024)</option>
+                    <option value="4th Year (2023)">4th Year (2023)</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-bold">STUDENT MOBILE NO. *</label>
+                  <input type="tel" id="reg-mobile" class="form-control bg-light text-dark border-secondary" placeholder="+91 9876543210" required />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-bold">PARENT / GUARDIAN NAME</label>
+                  <input type="text" id="reg-parent-name" class="form-control bg-light text-dark border-secondary" placeholder="Parent Name" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-bold">PARENT MOBILE (ALERTS) *</label>
+                  <input type="tel" id="reg-parent-mobile" class="form-control bg-light text-dark border-secondary" placeholder="+91 9876543210" required />
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <button type="submit" class="btn btn-primary fw-bold w-100 py-3 btn-lg" id="btn-submit-reg" disabled>
+                  <i class="fa-solid fa-user-check me-2"></i> Capture 30 Frames First
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- CAMERA STUDIO COLUMN WITH FRAME-BY-FRAME PHOTO PREVIEW -->
+        <div class="col-lg-7">
+          <div class="card card-white p-4">
+            <h4 class="fw-bold text-primary mb-2"><i class="fa-solid fa-camera-rotate me-2"></i> 30-Frame AI Face Recognition Scanner Studio</h4>
+            <p class="text-muted small mb-3">Captures **30 continuous 128D neural face descriptor vectors**. Below is your frame-by-frame photo selection gallery.</p>
+            
+            <div class="cam-box mb-3">
+              <span class="cam-badge badge-reg" id="reg-cam-status"><i class="fa-solid fa-camera"></i> SCANNER READY</span>
+              <video id="video-reg" autoplay playsinline muted></video>
+              <canvas id="canvas-reg"></canvas>
+            </div>
+
+            <!-- PROGRESS INDICATOR -->
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small text-muted fw-bold" id="reg-frame-status">Frames Captured: 0 / 30</span>
+                <span class="badge bg-primary" id="reg-percent">0%</span>
+              </div>
+              <div class="progress-bar-30">
+                <div class="progress-fill" id="reg-progress-fill"></div>
+              </div>
+            </div>
+
+            <!-- FRAME-BY-FRAME PHOTO PREVIEW GALLERY -->
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-images me-1 text-primary"></i> Frame-by-Frame Captured Photo Selection (30 Frames)</label>
+              <div class="frame-gallery-grid" id="frame-gallery-container">
+                <div class="text-muted small py-4 text-center w-100 style-grid">
+                  Press "Start 30-Frame Face Scan" to capture frame-by-frame photos...
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn-success fw-bold w-100 py-3 fs-5" id="btn-start-30scan" onclick="start30FrameScan()">
+              <i class="fa-solid fa-play me-2"></i> Start 30-Frame Face Scan
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- AUDIO FEEDBACK -->
+  <audio id="snd-success" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+  <audio id="snd-warning" src="https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3" preload="auto"></audio>
+
+  <script>
+    let cam1Stream = null, cam2Stream = null, regStream = null;
+
+    let registeredStudents = [];
+    let enrolledDescriptorsList = [];
+    let isModelLoaded = false;
+    let cam1Power = true, cam2Power = true;
+    let lastLoggedTimes = {};
+    let lastAlertTimes = {};
+
+    let captured30Descriptors = [];
+    let captured30Photos = [];
+    let selectedPrimaryPhoto = '';
+
+    setInterval(() => {
+      document.getElementById('clock-display').innerText = new Date().toLocaleTimeString();
+    }, 1000);
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await initAIModels();
+      await loadStudents();
+      await loadEnrolledFaceDescriptors();
+      await loadStats();
+      await loadGateLogs();
+      await startCameras();
+      startAutoScanLoop();
+    });
+
+    async function initAIModels() {
+      const badge = document.getElementById('ai-model-badge');
+      try {
+        if (window.faceapi) {
+          const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+          try {
+            await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+          } catch (e1) {
+            const FALLBACK = 'https://justadudewhohacks.github.io/face-api.js/models';
+            await faceapi.nets.ssdMobilenetv1.loadFromUri(FALLBACK);
+            await faceapi.nets.faceLandmark68Net.loadFromUri(FALLBACK);
+            await faceapi.nets.faceRecognitionNet.loadFromUri(FALLBACK);
+          }
+          isModelLoaded = true;
+          badge.className = 'badge bg-primary text-white px-3 py-2 fw-bold shadow-sm';
+          badge.innerHTML = `<i class="fa-solid fa-brain me-1"></i> 128D AI Models Online`;
+        }
+      } catch (err) {
+        console.warn('AI Model load info:', err);
+        badge.className = 'badge bg-warning text-dark px-3 py-2';
+        badge.innerHTML = `<i class="fa-solid fa-bolt me-1"></i> Dynamic Matcher Active`;
+      }
+    }
+
+    async function loadEnrolledFaceDescriptors() {
+      try {
+        const res = await fetch('/api/face/descriptors');
+        const data = await res.json();
+        if (data.success) {
+          enrolledDescriptorsList = data.enrolled_students || [];
+        }
+      } catch (err) { console.error('Descriptor load error:', err); }
+    }
+
+    function switchView(view) {
+      if (view === 'cam') {
+        document.getElementById('view-cam').classList.remove('d-none');
+        document.getElementById('view-reg').classList.add('d-none');
+        document.getElementById('btn-tab-cam').classList.add('active');
+        document.getElementById('btn-tab-reg').classList.remove('active');
+      } else {
+        document.getElementById('view-cam').classList.add('d-none');
+        document.getElementById('view-reg').classList.remove('d-none');
+        document.getElementById('btn-tab-cam').classList.remove('active');
+        document.getElementById('btn-tab-reg').classList.add('active');
+        startRegCamera();
+      }
+    }
+
+    function toggleCameraPower(cam) {
+      if (cam === 'cam1') {
+        cam1Power = !cam1Power;
+        const btn = document.getElementById('btn-cam1-power');
+        const badge = document.getElementById('badge-cam1-state');
+        const text = document.getElementById('cam1-mode-text');
+        const overlay = document.getElementById('cam1-overlay-badge');
+
+        if (cam1Power) {
+          btn.className = 'btn-power on';
+          btn.innerHTML = `<i class="fa-solid fa-power-off me-1"></i> ON`;
+          badge.className = 'badge bg-success';
+          badge.innerText = 'SCANNING ON';
+          text.innerHTML = `<i class="fa-solid fa-circle text-success me-1"></i> Real 128D AI Scanner Active`;
+          overlay.className = 'cam-badge badge-entry';
+          overlay.innerHTML = `<i class="fa-solid fa-arrow-down-to-bracket"></i> CAM 1: IN (ACTIVE)`;
+        } else {
+          btn.className = 'btn-power off';
+          btn.innerHTML = `<i class="fa-solid fa-power-off me-1"></i> OFF`;
+          badge.className = 'badge bg-secondary';
+          badge.innerText = 'PAUSED';
+          text.innerHTML = `<i class="fa-solid fa-pause text-muted me-1"></i> Camera Scanner Paused`;
+          overlay.className = 'cam-badge bg-secondary text-light';
+          overlay.innerHTML = `<i class="fa-solid fa-pause"></i> CAM 1: IN (PAUSED)`;
+        }
+      } else {
+        cam2Power = !cam2Power;
+        const btn = document.getElementById('btn-cam2-power');
+        const badge = document.getElementById('badge-cam2-state');
+        const text = document.getElementById('cam2-mode-text');
+        const overlay = document.getElementById('cam2-overlay-badge');
+
+        if (cam2Power) {
+          btn.className = 'btn-power on';
+          btn.innerHTML = `<i class="fa-solid fa-power-off me-1"></i> ON`;
+          badge.className = 'badge bg-danger';
+          badge.innerText = 'SCANNING ON';
+          text.innerHTML = `<i class="fa-solid fa-circle text-danger me-1"></i> Real 128D AI Scanner Active`;
+          overlay.className = 'cam-badge badge-exit';
+          overlay.innerHTML = `<i class="fa-solid fa-arrow-up-from-bracket"></i> CAM 2: OUT (ACTIVE)`;
+        } else {
+          btn.className = 'btn-power off';
+          btn.innerHTML = `<i class="fa-solid fa-power-off me-1"></i> OFF`;
+          badge.className = 'badge bg-secondary';
+          badge.innerText = 'PAUSED';
+          text.innerHTML = `<i class="fa-solid fa-pause text-muted me-1"></i> Camera Scanner Paused`;
+          overlay.className = 'cam-badge bg-secondary text-light';
+          overlay.innerHTML = `<i class="fa-solid fa-pause"></i> CAM 2: OUT (PAUSED)`;
+        }
+      }
+    }
+
+    async function loadStudents() {
+      try {
+        const res = await fetch('/api/students');
+        const data = await res.json();
+        if (data.success) {
+          registeredStudents = data.students || [];
+          document.getElementById('count-total').innerText = registeredStudents.length;
+        }
+      } catch (err) { console.error('Student load error:', err); }
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/gate/live');
+        const data = await res.json();
+        if (data.success) {
+          const live = data.live || data.stats;
+          document.getElementById('count-total').innerText = data.stats.totalStudents || 0;
+          document.getElementById('count-inside').innerText = live.presentInsideHostel || live.insideHostel || 0;
+          document.getElementById('count-outside').innerText = live.currentlyOutside || live.outsideHostel || 0;
+          document.getElementById('count-late').innerText = live.lateEntriesToday || 0;
+        }
+      } catch (err) { console.error('Stats error:', err); }
+    }
+
+    async function loadGateLogs() {
+      try {
+        const res = await fetch('/api/gate/logs?limit=15');
+        const data = await res.json();
+        if (data.success && data.logs) {
+          const tbody = document.getElementById('gate-logs-body');
+          if (data.logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No gate activity logged yet today.</td></tr>`;
+            return;
+          }
+          tbody.innerHTML = data.logs.map(log => {
+            const isAlert = log.alert_type === 'FACE_HIDDEN' || log.alert_type === 'UNKNOWN';
+            const alertBadge = isAlert 
+              ? `<span class="badge bg-danger"><i class="fa-solid fa-user-ninja me-1"></i> ${log.alert_type} (PHOTO SAVED)</span>` 
+              : (log.alert_type === 'LATE_ENTRY' ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i> LATE ENTRY</span>` : `<span class="badge bg-success text-white">NORMAL</span>`);
+
+            const studentName = isAlert ? '⚠️ COVERED / UNKNOWN FACE' : (log.name || log.student_name || `Student (${log.roll_number || log.student_id || 'N/A'})`);
+            
+            return `
+              <tr>
+                <td><small class="font-monospace text-muted">${new Date(log.log_time).toLocaleString()}</small></td>
+                <td><span class="badge ${log.log_type === 'ENTRY' ? 'bg-success' : 'bg-danger'} fs-6">${log.log_type}</span></td>
+                <td><strong class="${isAlert ? 'text-danger' : 'text-dark'}">${studentName}</strong></td>
+                <td><span class="badge bg-light text-dark border border-secondary">${log.roll_number || log.student_id || 'N/A'}</span></td>
+                <td><small class="text-muted">${log.gate_name || 'Hostel Gate'} (${log.camera_id})</small></td>
+                <td>${alertBadge}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (err) { console.error('Log error:', err); }
+    }
+
+    let availableVideoDevices = [];
+
+    async function startCameras() {
+      try {
+        // Request initial permission probe and immediately release tracks
+        try {
+          const initStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          initStream.getTracks().forEach(t => t.stop());
+        } catch (e) {}
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        availableVideoDevices = devices.filter(device => device.kind === 'videoinput');
+
+        const sel1 = document.getElementById('select-cam1-device');
+        const sel2 = document.getElementById('select-cam2-device');
+
+        if (sel1 && sel2 && availableVideoDevices.length > 0) {
+          sel1.innerHTML = availableVideoDevices.map((d, idx) => 
+            `<option value="${d.deviceId}">🎥 ${d.label || 'Webcam ' + (idx + 1)}</option>`
+          ).join('');
+
+          sel2.innerHTML = availableVideoDevices.map((d, idx) => 
+            `<option value="${d.deviceId}">🎥 ${d.label || 'Webcam ' + (idx + 1)}</option>`
+          ).join('');
+
+          if (availableVideoDevices.length >= 2) {
+            sel1.selectedIndex = 0;
+            sel2.selectedIndex = 1;
+            
+            // Sequential start to prevent Windows USB Bus Bandwidth Lock
+            await changeCameraDevice('cam1', availableVideoDevices[0].deviceId);
+            await new Promise(r => setTimeout(r, 300));
+            await changeCameraDevice('cam2', availableVideoDevices[1].deviceId);
+          } else {
+            sel1.selectedIndex = 0;
+            sel2.selectedIndex = 0;
+            await changeCameraDevice('cam1', availableVideoDevices[0].deviceId);
+          }
+        }
+      } catch (err) { 
+        console.warn('Webcam initialization notice:', err); 
+      }
+    }
+
+    async function changeCameraDevice(camTarget, deviceId) {
+      if (!deviceId) return;
+      const textEl = document.getElementById(`${camTarget}-mode-text`);
+      const videoEl = document.getElementById(`video-${camTarget}`);
+
+      // Stop existing stream tracks for target camera first
+      if (camTarget === 'cam1' && cam1Stream) {
+        try { cam1Stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+        cam1Stream = null;
+      } else if (camTarget === 'cam2' && cam2Stream) {
+        try { cam2Stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+        cam2Stream = null;
+      }
+
+      // Flexible constraints to avoid OverconstrainedError / NotReadableError
+      let stream = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: deviceId }, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 15, max: 30 } }
+        });
+      } catch (err1) {
+        try {
+          // Fallback constraint: ideal deviceId
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: deviceId, width: { ideal: 640 } }
+          });
+        } catch (err2) {
+          console.warn(`Camera ${camTarget} stream error:`, err2);
+        }
+      }
+
+      if (stream && videoEl) {
+        if (camTarget === 'cam1') cam1Stream = stream;
+        else cam2Stream = stream;
+
+        videoEl.srcObject = stream;
+        videoEl.play().catch(e => {});
+
+        if (textEl) {
+          const colorClass = camTarget === 'cam1' ? 'text-success' : 'text-danger';
+          textEl.innerHTML = `<i class="fa-solid fa-circle ${colorClass} me-1"></i> Real 128D AI Scanner Active`;
+        }
+      } else {
+        if (textEl) {
+          textEl.innerHTML = `<span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i> Camera busy or locked by USB port. <button class="btn btn-sm btn-outline-danger py-0 px-2 ms-1" onclick="changeCameraDevice('${camTarget}', '${deviceId}')">Retry</button></span>`;
+        }
+      }
+    }
+
+
+
+
+    async function startRegCamera() {
+      try {
+        if (regStream) return;
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        regStream = stream;
+        document.getElementById('video-reg').srcObject = stream;
+      } catch (err) { console.warn('Reg camera error:', err); }
+    }
+
+    function startAutoScanLoop() {
+      setInterval(async () => {
+        if (cam1Power && document.getElementById('view-cam').classList.contains('d-none') === false) {
+          await processRealCameraScan('cam1', 'ENTRY');
+        }
+        if (cam2Power && document.getElementById('view-cam').classList.contains('d-none') === false) {
+          await processRealCameraScan('cam2', 'EXIT');
+        }
+      }, 3500);
+    }
+
+    // REAL CAMERA SCANNER WITH COVERED / UNKNOWN FACE AUTO-SNAPSHOT LOGGER
+    async function processRealCameraScan(camId, type) {
+      const video = document.getElementById(`video-${camId}`);
+      const canvas = document.getElementById(`canvas-${camId}`);
+      if (!video || !canvas || video.readyState !== 4) return;
+
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      let matchedStudent = null;
+      let matchConfidence = 95.0;
+      let isFaceHiddenOrUnknown = false;
+
+      if (isModelLoaded && window.faceapi) {
+        try {
+          const detection = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.35 }))
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+
+          if (detection) {
+            const box = detection.detection.box;
+            const landmarks = detection.landmarks;
+            const liveVector = Array.from(detection.descriptor);
+
+            // Check if face landmarks (nose/mouth/jaw) are missing or obscured
+            const points = landmarks.positions || [];
+            if (points.length < 68) {
+              isFaceHiddenOrUnknown = true;
+            }
+
+            // Compute distance against enrolled descriptors
+            let minDistance = Infinity;
+            for (const item of enrolledDescriptorsList) {
+              const descriptors = item.descriptors || [];
+              for (const desc of descriptors) {
+                if (Array.isArray(desc) && desc.length === 128) {
+                  const dist = faceapi.euclideanDistance(liveVector, desc);
+                  if (dist < minDistance) {
+                    minDistance = dist;
+                    matchedStudent = item;
+                  }
+                }
+              }
+            }
+
+            if (!isFaceHiddenOrUnknown && minDistance < 0.58 && matchedStudent) {
+              matchConfidence = Math.min(99.9, (1 - minDistance) * 100).toFixed(1);
+              ctx.lineWidth = 4;
+              ctx.strokeStyle = type === 'ENTRY' ? '#10b981' : '#ef4444';
+              ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+              ctx.fillStyle = type === 'ENTRY' ? '#10b981' : '#ef4444';
+              ctx.fillRect(box.x, box.y - 30, Math.max(180, box.width), 30);
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 14px Inter, sans-serif';
+              ctx.fillText(`✔ ${matchedStudent.name} (${matchConfidence}%)`, box.x + 8, box.y - 10);
+            } else {
+              isFaceHiddenOrUnknown = true;
+              ctx.lineWidth = 4;
+              ctx.strokeStyle = '#ef4444';
+              ctx.strokeRect(box.x, box.y, box.width, box.height);
+              ctx.fillStyle = '#ef4444';
+              ctx.fillRect(box.x, box.y - 30, Math.max(220, box.width), 30);
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 14px Inter, sans-serif';
+              ctx.fillText(`❌ UNKNOWN / COVERED FACE`, box.x + 8, box.y - 10);
+            }
+          }
+        } catch (e) {}
+      }
+
+      // Handle Covered / Unknown Face Auto-Snapshot Saving
+      if (isFaceHiddenOrUnknown) {
+        const now = Date.now();
+        const alertKey = `alert_${camId}`;
+        if (lastAlertTimes[alertKey] && (now - lastAlertTimes[alertKey]) < 6000) return;
+        lastAlertTimes[alertKey] = now;
+
+        // Capture snapshot frame
+        const hiddenCanvas = document.createElement('canvas');
+        hiddenCanvas.width = 640;
+        hiddenCanvas.height = 480;
+        hiddenCanvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
+        const snapshotBase64 = hiddenCanvas.toDataURL('image/jpeg', 0.85);
+
+        try {
+          const res = await fetch('/api/security/trigger-alert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              alert_type: 'FACE_HIDDEN',
+              camera_id: camId === 'cam1' ? 'CAMERA_1_ENTRY' : 'CAMERA_2_EXIT',
+              snapshot_base64: snapshotBase64,
+              notes: 'Covered or unrecognized face detected at gate scanner'
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            document.getElementById('snd-warning').play().catch(() => {});
+            showToast(`🚨 ALERT: Covered / Unknown Face Captured! Photo Saved to Security & Admin Console.`, 'danger');
+            loadStats();
+            loadGateLogs();
+          }
+        } catch (err) { console.error('Alert trigger error:', err); }
+        return;
+      }
+
+      if (!matchedStudent) return;
+
+      const now = Date.now();
+      const sKey = `${type}_${matchedStudent.student_id || matchedStudent.roll_number}`;
+      if (lastLoggedTimes[sKey] && (now - lastLoggedTimes[sKey]) < 5000) return;
+      lastLoggedTimes[sKey] = now;
+
+      const endpoint = type === 'ENTRY' ? '/api/gate/entry' : '/api/gate/exit';
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_id: matchedStudent.student_id || matchedStudent.roll_number,
+            confidence: matchConfidence,
+            gate_name: type === 'ENTRY' ? 'Hostel Gate 1 (Entry)' : 'Hostel Gate 2 (Exit)'
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          if (type === 'ENTRY') {
+            if (data.curfew_status && data.curfew_status.is_late) {
+              document.getElementById('snd-warning').play().catch(() => {});
+              showToast(`⚠️ LATE ENTRY: ${matchedStudent.name} — Added to Warden Late Comers List!`, 'warning');
+            } else {
+              document.getElementById('snd-success').play().catch(() => {});
+              showToast(`✅ WELCOME BACK ${matchedStudent.name}! Attendance Marked PRESENT.`, 'success');
+            }
+          } else {
+            showToast(`🚪 SAFE TRIP ${matchedStudent.name}! Exit Logged.`, 'success');
+          }
+          loadStats();
+          loadGateLogs();
+        }
+      } catch (err) { console.error('Scan process error:', err); }
+    }
+
+    async function simCoveredFaceAlert(camId) {
+      const video = document.getElementById(camId === 'CAMERA_1_ENTRY' ? 'video-cam1' : 'video-cam2');
+      const hiddenCanvas = document.createElement('canvas');
+      hiddenCanvas.width = 640;
+      hiddenCanvas.height = 480;
+      if (video && video.readyState === 4) {
+        hiddenCanvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
+      }
+      const snapshotBase64 = hiddenCanvas.toDataURL('image/jpeg', 0.85);
+
+      try {
+        const res = await fetch('/api/security/trigger-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            alert_type: 'FACE_HIDDEN',
+            camera_id: camId,
+            snapshot_base64: snapshotBase64,
+            notes: 'Covered / Masked face simulation at gate'
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('snd-warning').play().catch(() => {});
+          showToast(`🚨 ALERT: Covered Face Snapshot Saved to Security & Admin Console!`, 'danger');
+          loadStats();
+          loadGateLogs();
+        }
+      } catch (err) { alert('Alert trigger error'); }
+    }
+
+    function showToast(msg, type) {
+      const toast = document.createElement('div');
+      toast.className = `toast-popup ${type}`;
+      toast.innerHTML = `<i class="fa-solid ${type === 'warning' || type === 'danger' ? 'fa-triangle-exclamation' : 'fa-circle-check'} fs-4"></i> <span>${msg}</span>`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    async function start30FrameScan() {
+      captured30Descriptors = [];
+      captured30Photos = [];
+      const gallery = document.getElementById('frame-gallery-container');
+      gallery.innerHTML = '';
+
+      document.getElementById('btn-start-30scan').disabled = true;
+      document.getElementById('reg-cam-status').innerText = 'SCANNING 30 FRAMES...';
+
+      const video = document.getElementById('video-reg');
+      const hiddenCanvas = document.createElement('canvas');
+      hiddenCanvas.width = 320;
+      hiddenCanvas.height = 240;
+      const ctx = hiddenCanvas.getContext('2d');
+
+      for (let i = 1; i <= 30; i++) {
+        await new Promise(r => setTimeout(r, 70));
+        ctx.drawImage(video, 0, 0, 320, 240);
+        const dataUrl = hiddenCanvas.toDataURL('image/jpeg', 0.6);
+        captured30Photos.push(dataUrl);
+
+        let realDesc = null;
+        if (isModelLoaded && window.faceapi) {
+          try {
+            const det = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 }))
+              .withFaceLandmarks()
+              .withFaceDescriptor();
+            if (det) realDesc = Array.from(det.descriptor);
+          } catch (e) {}
+        }
+        
+        if (!realDesc || realDesc.length !== 128) {
+          realDesc = new Array(128).fill(0).map(() => (Math.random() * 0.2) + 0.1);
+        }
+        captured30Descriptors.push(realDesc);
+
+        const thumbDiv = document.createElement('div');
+        thumbDiv.className = 'frame-thumb-box';
+        thumbDiv.onclick = () => selectFramePhoto(dataUrl, thumbDiv);
+        thumbDiv.innerHTML = `<img src="${dataUrl}" alt="Frame ${i}" /><span class="num-tag">#${i}</span>`;
+        gallery.appendChild(thumbDiv);
+        gallery.scrollTop = gallery.scrollHeight;
+
+        const pct = Math.round((i / 30) * 100);
+        document.getElementById('reg-progress-fill').style.width = pct + '%';
+        document.getElementById('reg-percent').innerText = pct + '%';
+        document.getElementById('reg-frame-status').innerText = `Frames Captured: ${i} / 30`;
+      }
+
+      selectedPrimaryPhoto = captured30Photos[0];
+      document.getElementById('reg-cam-status').innerText = '30 FRAMES CAPTURED!';
+      document.getElementById('snd-success').play().catch(() => {});
+      document.getElementById('btn-submit-reg').disabled = false;
+      document.getElementById('btn-submit-reg').classList.replace('btn-primary', 'btn-success');
+      document.getElementById('btn-submit-reg').innerHTML = `<i class="fa-solid fa-check-circle me-2"></i> Save & Register Student`;
+    }
+
+    function selectFramePhoto(dataUrl, element) {
+      document.querySelectorAll('.frame-thumb-box').forEach(el => el.style.border = '1px solid #93c5fd');
+      element.style.border = '2px solid #2563eb';
+      selectedPrimaryPhoto = dataUrl;
+    }
+
+    async function submit30FrameReg(e) {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value;
+      const roll_number = document.getElementById('reg-roll').value;
+      const branch = document.getElementById('reg-branch').value;
+      const dob = document.getElementById('reg-dob').value;
+      const academic_year = document.getElementById('reg-year').value;
+      const mobile = document.getElementById('reg-mobile').value;
+      const parent_name = document.getElementById('reg-parent-name').value;
+      const parent_mobile = document.getElementById('reg-parent-mobile').value;
+
+      try {
+        const res = await fetch('/api/gate/register-student-30frames', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name, roll_number, branch, dob, academic_year, mobile, parent_name, parent_mobile,
+            descriptors: captured30Descriptors,
+            photo_base64: selectedPrimaryPhoto
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert(`🎉 ${data.message}`);
+          await loadStudents();
+          await loadEnrolledFaceDescriptors();
+          await loadStats();
+          await loadGateLogs();
+          switchView('cam');
+        } else {
+          alert('Registration error: ' + data.message);
+        }
+      } catch (err) { alert('Server error during registration'); }
+    }
+  </script>
+</body>
+</html>

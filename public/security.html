@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VisioFace AI — Security Guard Monitoring Console</title>
+  <!-- Google Fonts & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    body {
+      background-color: #f0f4f9 !important;
+      color: #0f172a !important;
+    }
+    .security-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .navbar-theme {
+      background: linear-gradient(135deg, #0f172a, #1e3a8a) !important;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
+    }
+    .card-white {
+      background: #ffffff !important;
+      border: 1px solid #bfdbfe !important;
+      border-radius: 16px !important;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.08) !important;
+    }
+    .card-header-blue {
+      background: #eff6ff !important;
+      border-bottom: 1px solid #bfdbfe !important;
+      border-radius: 15px 15px 0 0 !important;
+    }
+    .alert-card {
+      background: #ffffff;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.05);
+    }
+    .alert-card.unack {
+      border-left: 6px solid #ef4444;
+      background: #fef2f2;
+    }
+    .alert-card.ack {
+      border-left: 6px solid #10b981;
+      opacity: 0.85;
+    }
+    .snap-thumb {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 2px solid #ef4444;
+      background: #f8fafc;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
+      transition: transform 0.2s ease;
+    }
+    .snap-thumb:hover {
+      transform: scale(1.08);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-theme px-4 py-3">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold fs-4 text-white" href="index.html">
+        <i class="fa-solid fa-shield-halved text-warning fs-3"></i>
+        <span>VisioFace <span class="text-info">AI</span> — Security Control Desk</span>
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <a href="index.html" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-home me-1"></i> Main Dashboard</a>
+        <a href="gate.html" class="btn btn-success text-white btn-sm fw-bold"><i class="fa-solid fa-door-open me-1"></i> Gate Dual-Cam</a>
+        <a href="warden.html" class="btn btn-info text-dark btn-sm fw-bold"><i class="fa-solid fa-user-shield me-1"></i> Warden Portal</a>
+        <span class="badge bg-light text-dark px-3 py-2 fs-6 fw-bold" id="sec-clock">00:00:00</span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="security-container">
+
+    <!-- HEADER & STATUS BAR -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h3 class="fw-bold mb-1 text-primary"><i class="fa-solid fa-tower-observation me-2"></i> Security Guard Incident & Alert Center</h3>
+        <p class="text-muted mb-0">Live monitoring for unknown faces, covered faces, curfew breaches, and gate security violations.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-danger font-bold px-3" onclick="triggerManualPanic()">
+          <i class="fa-solid fa-bell me-1"></i> Trigger Security Alert
+        </button>
+        <button class="btn btn-primary font-bold px-3" onclick="loadSecurityData()">
+          <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh Feed
+        </button>
+      </div>
+    </div>
+
+    <!-- SYSTEM HEALTH BAR -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card card-white p-3 d-flex flex-row align-items-center gap-3">
+          <div class="fs-2 text-success"><i class="fa-solid fa-video"></i></div>
+          <div>
+            <div class="fw-bold text-dark">Gate 1 Entry Camera</div>
+            <div class="small text-success fw-bold"><i class="fa-solid fa-circle me-1"></i> ONLINE • 30 FPS</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card card-white p-3 d-flex flex-row align-items-center gap-3">
+          <div class="fs-2 text-success"><i class="fa-solid fa-video"></i></div>
+          <div>
+            <div class="fw-bold text-dark">Gate 2 Exit Camera</div>
+            <div class="small text-success fw-bold"><i class="fa-solid fa-circle me-1"></i> ONLINE • 30 FPS</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card card-white p-3 d-flex flex-row align-items-center gap-3">
+          <div class="fs-2 text-danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div>
+            <div class="fw-bold text-dark">Unacknowledged Alerts</div>
+            <div class="small text-danger fw-bold" id="unack-count-text">0 Pending Alerts</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS LIST -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card card-white">
+          <div class="card-header card-header-blue d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-bell me-2"></i> Real-time Incident Alert Stream & Snapshots</h5>
+            <span class="badge bg-primary text-white fs-6" id="total-alerts-badge">0 Alerts Total</span>
+          </div>
+          <div class="card-body p-4" id="alerts-container">
+            <div class="text-center text-muted py-5">
+              <i class="fa-solid fa-spinner fa-spin fs-2 mb-2"></i>
+              <div>Loading real-time security alerts...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    setInterval(() => {
+      document.getElementById('sec-clock').innerText = new Date().toLocaleTimeString();
+    }, 1000);
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadSecurityData();
+    });
+
+    async function loadSecurityData() {
+      try {
+        const res = await fetch('/api/security/alerts');
+        const data = await res.json();
+        
+        if (data.success && data.alerts) {
+          document.getElementById('total-alerts-badge').innerText = `${data.count} Alerts Total`;
+          
+          const unack = data.alerts.filter(a => !a.is_acknowledged);
+          document.getElementById('unack-count-text').innerText = `${unack.length} Pending Action`;
+
+          const container = document.getElementById('alerts-container');
+          if (data.alerts.length === 0) {
+            container.innerHTML = `
+              <div class="text-center text-success py-5">
+                <i class="fa-solid fa-shield-check fs-1 mb-2"></i>
+                <div class="fw-bold fs-5">All Gates Clear!</div>
+                <div class="text-muted small">No security alerts or unacknowledged breaches.</div>
+              </div>
+            `;
+            return;
+          }
+
+          container.innerHTML = data.alerts.map(a => {
+            const isUnack = !a.is_acknowledged;
+            const cardClass = isUnack ? 'alert-card unack' : 'alert-card ack';
+            const alertBadge = a.alert_type === 'LATE_ENTRY' ? 'bg-warning text-dark' : 'bg-danger';
+            const imgUrl = a.snapshot_url || a.image_snapshot || a.photo_url;
+            
+            return `
+              <div class="${cardClass}">
+                <div class="d-flex align-items-center gap-3">
+                  ${imgUrl ? `
+                    <img src="${imgUrl}" class="snap-thumb" title="Click to view full photo" onclick="alert('Photo snapshot path: ${imgUrl}')" />
+                  ` : `
+                    <div class="snap-thumb d-flex align-items-center justify-content-center text-muted bg-light">
+                      <i class="fa-solid fa-user-ninja fs-3 text-danger"></i>
+                    </div>
+                  `}
+                  <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <span class="badge ${alertBadge} fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i> ${a.alert_type}</span>
+                      <small class="text-muted font-monospace">${new Date(a.created_at || a.detected_at).toLocaleString()}</small>
+                    </div>
+                    <div class="fw-bold fs-6 text-dark">${a.student_name ? `${a.student_name} (${a.roll_number})` : '⚠️ COVERED FACE / UNREGISTERED PERSON'}</div>
+                    <div class="small text-muted"><i class="fa-solid fa-camera me-1"></i> Location: ${a.camera_id} | ${a.notes || 'Photo snapshot saved'}</div>
+                  </div>
+                </div>
+                <div>
+                  ${isUnack ? `
+                    <button class="btn btn-sm btn-success fw-bold px-3" onclick="acknowledgeAlert(${a.id})">
+                      <i class="fa-solid fa-check me-1"></i> Acknowledge & Clear
+                    </button>
+                  ` : `
+                    <span class="badge bg-secondary text-light"><i class="fa-solid fa-user-check me-1"></i> Verified by ${a.acknowledged_by || 'Guard'}</span>
+                  `}
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (err) {
+        console.error('Failed to load security alerts:', err);
+      }
+    }
+
+    async function acknowledgeAlert(alertId) {
+      const notes = prompt('Enter Guard Note / Resolution for this alert:', 'Verified identity at gate');
+      if (notes === null) return;
+
+      try {
+        const res = await fetch(`/api/security/acknowledge/${alertId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guard_notes: notes, guard_name: 'Main Security Guard' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Alert acknowledged!');
+          loadSecurityData();
+        } else {
+          alert('Failed to acknowledge alert: ' + data.message);
+        }
+      } catch (err) {
+        alert('Server error acknowledging alert');
+      }
+    }
+
+    async function triggerManualPanic() {
+      const reason = prompt('Enter Manual Security Alert Reason (e.g., Unidentified tailgating at Gate 1):');
+      if (!reason) return;
+
+      try {
+        const res = await fetch('/api/security/trigger-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            alert_type: 'SECURITY_PANIC',
+            camera_id: 'SECURITY_DESK',
+            notes: reason
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('🚨 Security alert logged successfully!');
+          loadSecurityData();
+        }
+      } catch (err) {
+        alert('Failed to log security alert');
+      }
+    }
+  </script>
+</body>
+</html>

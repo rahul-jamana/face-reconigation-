@@ -244,6 +244,27 @@ function initModals() {
       window.faceEngine.openRegisterWizard();
     }
   });
+
+  document.getElementById('btn-classroom-scan')?.addEventListener('click', () => {
+    if (window.faceEngine) {
+      window.faceEngine.triggerClassroomBatchScan();
+    }
+  });
+
+  document.getElementById('btn-open-cctv-modal')?.addEventListener('click', () => {
+    document.getElementById('modal-cctv')?.classList.add('show');
+  });
+
+  document.getElementById('form-connect-cctv')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const url = document.getElementById('cctv-url-input')?.value;
+    const label = document.getElementById('cctv-location-label')?.value || 'Classroom CCTV';
+    
+    if (url && window.faceEngine) {
+      window.faceEngine.connectCctvStream(url, label);
+      document.getElementById('modal-cctv')?.classList.remove('show');
+    }
+  });
 }
 
 // Dashboard Analytics & Charts
@@ -290,8 +311,8 @@ function renderDailyTrendChart(trendData) {
       datasets: [{
         label: 'Present Students',
         data: presents,
-        borderColor: '#22c55e',
-        backgroundColor: 'rgba(34, 197, 94, 0.15)',
+        borderColor: '#2563eb',
+        backgroundColor: 'rgba(37, 99, 235, 0.15)',
         fill: true,
         tension: 0.4,
         borderWidth: 3
@@ -302,7 +323,7 @@ function renderDailyTrendChart(trendData) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.08)' } },
+        y: { beginAtZero: true, grid: { color: 'rgba(37, 99, 235, 0.1)' } },
         x: { grid: { display: false } }
       }
     }
@@ -324,7 +345,7 @@ function renderBranchBreakdownChart(deptData) {
       labels,
       datasets: [{
         data: presents,
-        backgroundColor: ['#3b82f6', '#22c55e', '#a855f7', '#eab308', '#ec4899', '#06b6d4'],
+        backgroundColor: ['#2563eb', '#3b82f6', '#0284c7', '#1d4ed8', '#1e40af', '#60a5fa'],
         borderWidth: 2
       }]
     },

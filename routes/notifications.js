@@ -23,19 +23,24 @@ const notificationSettings = {
   whatsappApiKey: process.env.WHATSAPP_API_KEY || ''
 };
 
-// Core Notification Dispatcher Function
-async function dispatchParentNotifications(studentData, attendanceRecord) {
+// Core Notification Dispatcher Function (Supports Exit, Late, Missing, SOS events)
+async function dispatchParentNotifications(studentData, attendanceRecord = {}) {
   let {
     student_id, studentId,
     name, studentName,
+    roll_number, rollNumber,
     branch, department,
     parent_name, parentName,
     parent_email, parentEmail,
     parent_mobile, parentMobile,
-    parent_whatsapp, parentWhatsapp
+    parent_whatsapp, parentWhatsapp,
+    event_type, eventType,
+    late_minutes, lateMinutes,
+    status
   } = studentData;
 
   const sId = studentId || student_id;
+  const sRoll = rollNumber || roll_number || 'N/A';
   
   // If parent fields are missing, fetch directly from students table
   if (!parent_name && !parentName && sId) {
@@ -47,6 +52,7 @@ async function dispatchParentNotifications(studentData, attendanceRecord) {
         parent_mobile = dbStudent.parent_mobile;
         parent_whatsapp = dbStudent.parent_whatsapp;
         name = name || dbStudent.name;
+        roll_number = roll_number || dbStudent.roll_number;
         branch = branch || dbStudent.branch || dbStudent.department;
       }
     } catch (e) {}
@@ -58,20 +64,45 @@ async function dispatchParentNotifications(studentData, attendanceRecord) {
   const pMobile = parentMobile || parent_mobile || '';
   const pWhatsapp = parentWhatsapp || parent_whatsapp || pMobile;
   const dept = branch || department || 'Computer Science';
+  const evType = eventType || event_type || status || 'ENTRY';
+  const lMins = lateMinutes || late_minutes || 0;
 
   const dateStr = attendanceRecord.date || new Date().toISOString().split('T')[0];
   const timeStr = attendanceRecord.time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   const currentTimestamp = Date.now();
+
+  let subject = `Hostel Alert: ${sName}`;
+  let message = '';
+
+  if (evType === 'EXIT') {
+    subject = `🚪 Hostel Exit Alert: ${sName}`;
+    message = `📱 PARENT SMS: Hello ${pName}, your ward ${sName} (Roll: ${sRoll}) EXITED the hostel gate at ${timeStr} on ${dateStr}.`;
+  } else if (evType === 'LATE_ENTRY' || evType === 'Late') {
+    subject = `⚠️ Late Hostel Entry Alert: ${sName}`;
+    message = `📱 PARENT SMS ALERT: Hello ${pName}, your ward ${sName} (Roll: ${sRoll}) entered the hostel LATE by ${lMins} mins at ${timeStr}. Evening Cutoff: 7:00 PM.`;
+  } else if (evType === 'VERY_LATE') {
+    subject = `🚨 VERY LATE Entry Alert: ${sName}`;
+    message = `📱 PARENT SMS URGENT: Hello ${pName}, your ward ${sName} (Roll: ${sRoll}) entered the hostel VERY LATE past 8:00 PM (${lMins} mins late) at ${timeStr}.`;
+  } else if (evType === 'CRITICAL') {
+    subject = `🔥 CRITICAL Lockdown Entry Alert: ${sName}`;
+    message = `📱 PARENT SMS CRITICAL: Hello ${pName}, your ward ${sName} (Roll: ${sRoll}) entered the hostel during LOCKDOWN past 10:00 PM at ${timeStr}.`;
+  } else if (evType === 'MISSING') {
+    subject = `🚨 MISSING STUDENT ALERT: ${sName}`;
+    message = `📱 PARENT SMS URGENT: Hello ${pName}, your ward ${sName} (Roll: ${sRoll}) is still OUTSIDE the hostel past 8:00 PM curfew without entry record.`;
+  } else if (evType === 'SOS') {
+    subject = `🆘 EMERGENCY SOS ALERT: ${sName}`;
+    message = `🆘 EMERGENCY PARENT SMS: Emergency SOS alert triggered for your ward ${sName} (Roll: ${sRoll}) at ${timeStr} on ${dateStr}.`;
+  } else {
+    subject = `🚪 Hostel Gate Entry: ${sName}`;
+    message = `📱 PARENT SMS: Hello ${pName}, your ward ${sName} (Roll: ${sRoll}) entered the hostel gate on time at ${timeStr} on ${dateStr}.`;
+  }
 
   const activeChannels = [];
   if (notificationSettings.emailEnabled) activeChannels.push('Email');
   if (notificationSettings.whatsappEnabled) activeChannels.push('WhatsApp');
   if (notificationSettings.smsEnabled) activeChannels.push('SMS');
 
-  const combinedChannelStr = activeChannels.join(', ') || 'Email, WhatsApp, SMS';
-
-  const subject = `Attendance Alert: ${sName}`;
-  const message = `Hello ${pName},\nYour child ${sName} entered campus successfully.\nEntry Time: ${timeStr}\nDate: ${dateStr}\nDepartment: ${dept}\nStatus: Present`;
+  const combinedChannelStr = activeChannels.join(', ') || 'SMS, WhatsApp, Email';
 
   // Save 1 consolidated notification record for all channels
   await saveNotificationRecord({
@@ -92,11 +123,94 @@ async function dispatchParentNotifications(studentData, attendanceRecord) {
   });
 
   return {
-    email: { sent: notificationSettings.emailEnabled, status: notificationSettings.emailEnabled ? 'Sent' : 'Disabled' },
-    whatsapp: { sent: notificationSettings.whatsappEnabled, status: notificationSettings.whatsappEnabled ? 'Sent' : 'Disabled' },
-    sms: { sent: notificationSettings.smsEnabled, status: notificationSettings.smsEnabled ? 'Sent' : 'Disabled' }
+    success: true,
+    message: 'Parent SMS and notifications dispatched successfully!',
+    channels: activeChannels,
+    content: message
   };
 }
+
+// Dedicated BEC Transport Bus SMS Notification Dispatcher
+async function dispatchBusSMSNotification(type, data) {
+  const {
+    studentName = 'Munu Nial',
+    rollNumber = 'BEC26081',
+    parentName = 'Parent',
+    parentMobile = '+91 9998887771',
+    busNumber = 'Bus #4',
+    routeName = 'Khordha',
+    stopName = 'Pitapalli Square',
+    timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    studentId = 1
+  } = data;
+
+  let subject = `BEC Transport Alert: ${studentName}`;
+  let message = '';
+
+  switch (type) {
+    case 'BOARD':
+      subject = `🚌 Bus Boarding Alert: ${studentName}`;
+      message = `BEC Transport\nYour ward ${studentName} boarded ${busNumber} at ${timeStr}.\nRoute: ${routeName}\n- BEC Transport`;
+      break;
+
+    case 'ARRIVE_COLLEGE':
+      subject = `🎓 College Arrival Alert: ${studentName}`;
+      message = `BEC Transport\nYour ward ${studentName} reached college at ${timeStr}.\n- BEC Transport`;
+      break;
+
+    case 'LEAVE_COLLEGE':
+      subject = `🏫 College Departure Alert: ${studentName}`;
+      message = `BEC Transport\nYour ward ${studentName} left college at ${timeStr}.\n- BEC Transport`;
+      break;
+
+    case 'RETURN_BOARD':
+    case 'DEBOARD':
+      subject = `🚌 Return Bus Alert: ${studentName}`;
+      message = `BEC Transport\nYour ward ${studentName} boarded return ${busNumber} at ${timeStr}.\n- BEC Transport`;
+      break;
+
+    case 'ARRIVE_STOP':
+      subject = `📍 Home Stop Arrival Alert: ${studentName}`;
+      message = `BEC Transport\nYour ward ${studentName} reached ${stopName} at ${timeStr}.\n- BEC Transport`;
+      break;
+
+    case 'FEE_UNPAID_ALERT':
+      subject = `⚠️ Bus Alert: Fee Unpaid (${studentName})`;
+      message = `🚌 Bus Alert\n${busNumber} — Route ${routeName}\n${studentName} (${rollNumber}) — FEE UNPAID\nBoarding blocked.\n- BEC Transport`;
+      break;
+
+    case 'UNREGISTERED_ALERT':
+      subject = `🚨 Bus Alert: Non-Bus Student (${studentName})`;
+      message = `🚌 Bus Alert\n${busNumber} — Route ${routeName}\n${studentName} (${rollNumber}) — NOT REGISTERED FOR BUS\nBoarding blocked.\n- BEC Transport`;
+      break;
+
+    default:
+      message = `BEC Transport\nStatus update for ${studentName} on ${busNumber} at ${timeStr}.\n- BEC Transport`;
+  }
+
+  const dateStr = new Date().toISOString().split('T')[0];
+
+  await saveNotificationRecord({
+    studentId,
+    studentName,
+    parentName,
+    email: '',
+    phoneNumber: parentMobile,
+    whatsappNumber: parentMobile,
+    channel: 'SMS',
+    subject,
+    message,
+    status: 'Sent',
+    errorMessage: '',
+    date: dateStr,
+    time: timeStr,
+    timestamp: Date.now()
+  });
+
+  return { success: true, message, type };
+}
+
+
 
 // Save Notification Log Record Helper
 async function saveNotificationRecord(record) {
@@ -251,6 +365,7 @@ router.post('/settings', (req, res) => {
 
 module.exports = {
   router,
-  dispatchParentNotifications
+  dispatchParentNotifications,
+  dispatchBusSMSNotification
 };
 

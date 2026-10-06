@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Buses — Admin Console</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    body { background-color: #f0f4f9; font-family: 'Segoe UI', system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand fw-bold" href="/index.html"><i class="fa-solid fa-screwdriver-wrench me-2"></i>Admin Transport Portal</a>
+      <div class="navbar-nav ms-auto gap-2">
+        <a class="nav-link active fw-bold" href="/admin/buses.html">Buses</a>
+        <a class="nav-link text-white-50" href="/admin/bus-routes.html">Routes</a>
+        <a class="nav-link text-white-50" href="/admin/bus-registrations.html">Registrations</a>
+        <a class="nav-link text-white-50" href="/admin/transport-fees.html">Fees</a>
+        <a class="nav-link text-white-50" href="/admin/bus-reports.html">Reports</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-4 py-4">
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-bus-simple me-2"></i>Bus Fleet Management (Feature 10)</h5>
+        <button class="btn btn-primary rounded-pill btn-sm" onclick="loadBuses()"><i class="fa-solid fa-sync me-1"></i>Refresh Fleet</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Bus Number</th>
+              <th>Route Name</th>
+              <th>Driver Name</th>
+              <th>Driver Contact</th>
+              <th>Conductor</th>
+              <th>Capacity</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="buses-table">
+            <tr><td colspan="7" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading fleet data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadBuses() {
+      try {
+        const res = await fetch('/api/bus/live');
+        const data = await res.json();
+        const tbody = document.getElementById('buses-table');
+        if (data.success && data.buses.length > 0) {
+          tbody.innerHTML = data.buses.map(b => `
+            <tr>
+              <td><strong class="text-primary">${b.bus_number}</strong></td>
+              <td>${b.route_name}</td>
+              <td>${b.driver_name}</td>
+              <td>${b.driver_phone}</td>
+              <td>${b.conductor_name} (${b.conductor_phone})</td>
+              <td><span class="badge bg-secondary">${b.capacity} Seats</span></td>
+              <td><span class="badge bg-success">ACTIVE</span></td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) {}
+    }
+    loadBuses();
+  </script>
+</body>
+</html>
