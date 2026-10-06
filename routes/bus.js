@@ -196,7 +196,7 @@ router.post('/deboard', async (req, res) => {
   }
 });
 
-// POST /api/bus/arrive-college - College Arrival (Feature 2)
+// POST /api/bus/arrive-college - Trigger Morning Campus Arrival SMS Notification (9:00 AM)
 router.post('/arrive-college', async (req, res) => {
   try {
     const { student_id, roll_number, bus_id = 1 } = req.body;
