@@ -149,7 +149,7 @@ router.post('/board', async (req, res) => {
   }
 });
 
-// POST /api/bus/deboard - Deboard / Return Bus Boarding (Feature 4)
+// POST /api/bus/deboard - Deboard / Return Evening Bus Boarding Handler
 router.post('/deboard', async (req, res) => {
   try {
     const { student_id, roll_number, bus_id = 1, route_id = 1, face_confidence = 99.0, photo_url = '' } = req.body;
