@@ -35,7 +35,9 @@ window.showToast = function(message, type = 'info') {
 
 // Switch Tab Navigation Helper
 window.switchTab = function(tabId) {
-  const links = document.querySelectorAll('.nav-link, .mobile-nav-item');
+  if (!tabId || tabId === 'null' || tabId === 'undefined') tabId = 'dashboard';
+
+  const links = document.querySelectorAll('.nav-link[data-tab], .mobile-nav-item[data-tab]');
   const views = document.querySelectorAll('.tab-view');
 
   links.forEach(l => {
@@ -43,10 +45,21 @@ window.switchTab = function(tabId) {
     else l.classList.remove('active');
   });
 
+  let matchedView = false;
   views.forEach(v => {
-    if (v.id === `view-${tabId}`) v.classList.add('active');
-    else v.classList.remove('active');
+    if (v.id === `view-${tabId}`) {
+      v.classList.add('active');
+      matchedView = true;
+    } else {
+      v.classList.remove('active');
+    }
   });
+
+  // Fallback: If no tab view matched, restore view-dashboard
+  if (!matchedView && views.length > 0) {
+    const dashView = document.getElementById('view-dashboard');
+    if (dashView) dashView.classList.add('active');
+  }
 
   // Close mobile sidebar if open
   document.getElementById('app-sidebar')?.classList.remove('mobile-open');
@@ -209,11 +222,13 @@ function initAuth() {
 
 // Navigation Tab Switchers
 function initNavigation() {
-  const links = document.querySelectorAll('.nav-link');
+  const links = document.querySelectorAll('.nav-link[data-tab]');
   links.forEach(link => {
     link.addEventListener('click', () => {
       const tabId = link.getAttribute('data-tab');
-      switchTab(tabId);
+      if (tabId) {
+        switchTab(tabId);
+      }
     });
   });
 }
