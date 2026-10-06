@@ -636,9 +636,15 @@ class FaceAIEngine {
 
       if (this.isModelLoaded && window.faceapi) {
         try {
-          rawDetections = await faceapi.detectAllFaces(this.video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.45 }))
+          rawDetections = await faceapi.detectAllFaces(this.video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.10, maxResults: 20 }))
             .withFaceLandmarks()
             .withFaceDescriptors();
+          
+          if (!rawDetections || rawDetections.length === 0) {
+            rawDetections = await faceapi.detectAllFaces(this.video, new faceapi.TinyFaceDetectorOptions({ inputSize: 640, scoreThreshold: 0.10 }))
+              .withFaceLandmarks()
+              .withFaceDescriptors();
+          }
         } catch (e) {
           console.warn('[FaceAI] Detection error:', e);
         }

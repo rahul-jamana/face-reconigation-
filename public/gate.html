@@ -517,17 +517,19 @@
           const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
           try {
             await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
             await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
             await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
           } catch (e1) {
             const FALLBACK = 'https://justadudewhohacks.github.io/face-api.js/models';
             await faceapi.nets.ssdMobilenetv1.loadFromUri(FALLBACK);
+            await faceapi.nets.tinyFaceDetector.loadFromUri(FALLBACK);
             await faceapi.nets.faceLandmark68Net.loadFromUri(FALLBACK);
             await faceapi.nets.faceRecognitionNet.loadFromUri(FALLBACK);
           }
           isModelLoaded = true;
           badge.className = 'badge bg-primary text-white px-3 py-2 fw-bold shadow-sm';
-          badge.innerHTML = `<i class="fa-solid fa-brain me-1"></i> 128D AI Models Online`;
+          badge.innerHTML = `<i class="fa-solid fa-brain me-1"></i> 128D AI Models Online (7+ Multi-Face Active)`;
         }
       } catch (err) {
         console.warn('AI Model load info:', err);
@@ -804,9 +806,20 @@
 
       if (isModelLoaded && window.faceapi) {
         try {
-          const detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.25 }))
-            .withFaceLandmarks()
-            .withFaceDescriptors();
+          let detections = [];
+          try {
+            detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.10, maxResults: 20 }))
+              .withFaceLandmarks()
+              .withFaceDescriptors();
+          } catch (eSsd) {}
+
+          if (!detections || detections.length === 0) {
+            try {
+              detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 640, scoreThreshold: 0.10 }))
+                .withFaceLandmarks()
+                .withFaceDescriptors();
+            } catch (eTiny) {}
+          }
 
           if (detections && detections.length > 0) {
             for (const detection of detections) {
@@ -839,7 +852,7 @@
                 }
               }
 
-              if (!isSingleFaceCovered && minDistance < 0.58 && matchedStudent) {
+              if (!isSingleFaceCovered && minDistance < 0.62 && matchedStudent) {
                 matchConfidence = Math.min(99.9, (1 - minDistance) * 100).toFixed(1);
                 ctx.lineWidth = 4;
                 ctx.strokeStyle = type === 'ENTRY' ? '#10b981' : '#ef4444';
@@ -862,7 +875,7 @@
                 ctx.fillRect(box.x, box.y - 30, Math.max(220, box.width), 30);
                 ctx.fillStyle = '#ffffff';
                 ctx.font = 'bold 14px Inter, sans-serif';
-                ctx.fillText(`❌ UNKNOWN / COVERED FACE`, box.x + 8, box.y - 10);
+                ctx.fillText(`❌ UNKNOWN / UNREGISTERED FACE`, box.x + 8, box.y - 10);
               }
             }
           }
