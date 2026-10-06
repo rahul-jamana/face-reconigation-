@@ -92,9 +92,9 @@ router.post('/entry', async (req, res) => {
       );
     }
 
-    // Insert Entry Log with new columns
+    // Insert Entry Log with new columns and local timestamp
     const logResult = await dbRun(
-      `INSERT INTO gate_entry_exit_logs (student_id, roll_number, log_type, camera_id, gate_name, face_matched, face_confidence, anti_spoof_passed, alert_type, photo_url, notes, late_minutes, is_late, is_missing, parent_notified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO gate_entry_exit_logs (student_id, roll_number, log_type, camera_id, gate_name, log_time, face_matched, face_confidence, anti_spoof_passed, alert_type, photo_url, notes, late_minutes, is_late, is_missing, parent_notified) VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [student.student_id, student.roll_number, 'ENTRY', 'CAMERA_1_ENTRY', gate, 1, conf, anti_spoof_passed ? 1 : 0, alertType, photoPath, alertMsg, lateMins, isLate, 0, 1]
     );
 
@@ -213,7 +213,7 @@ router.post('/exit', async (req, res) => {
     }
 
     const logResult = await dbRun(
-      `INSERT INTO gate_entry_exit_logs (student_id, roll_number, log_type, camera_id, gate_name, face_matched, face_confidence, anti_spoof_passed, alert_type, photo_url, notes, parent_notified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO gate_entry_exit_logs (student_id, roll_number, log_type, camera_id, gate_name, log_time, face_matched, face_confidence, anti_spoof_passed, alert_type, photo_url, notes, parent_notified) VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?, ?)`,
       [student.student_id, student.roll_number, 'EXIT', 'CAMERA_2_EXIT', gate, 1, conf, anti_spoof_passed ? 1 : 0, alertType, photoPath, alertMsg, 1]
     );
 
@@ -258,12 +258,12 @@ router.get('/logs', async (req, res) => {
   try {
     const logs = await dbQuery(`
       SELECT g.*, 
-             COALESCE(s.name, 'Student (' || COALESCE(g.roll_number, g.student_id) || ')') as name,
+             COALESCE(s.name, g.student_id) as name,
              s.name as student_name, 
              s.branch, 
              s.mobile 
       FROM gate_entry_exit_logs g 
-      LEFT JOIN students s ON (g.student_id = s.student_id OR g.roll_number = s.roll_number OR g.student_id = s.roll_number) 
+      LEFT JOIN students s ON g.student_id = s.student_id 
       ORDER BY g.id DESC LIMIT 50
     `);
     res.json({ success: true, count: logs.length, logs });

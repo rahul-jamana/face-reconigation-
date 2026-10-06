@@ -658,9 +658,12 @@
 
             const studentName = isAlert ? '⚠️ COVERED / UNKNOWN FACE' : (log.name || log.student_name || `Student (${log.roll_number || log.student_id || 'N/A'})`);
             
+            let timeStr = log.log_time ? (log.log_time.includes('Z') || log.log_time.includes('+') ? new Date(log.log_time).toLocaleString() : new Date(log.log_time.replace(' ', 'T')).toLocaleString()) : new Date().toLocaleString();
+            if (timeStr === 'Invalid Date') timeStr = log.log_time || new Date().toLocaleString();
+
             return `
               <tr>
-                <td><small class="font-monospace text-muted">${new Date(log.log_time).toLocaleString()}</small></td>
+                <td><small class="font-monospace text-muted">${timeStr}</small></td>
                 <td><span class="badge ${log.log_type === 'ENTRY' ? 'bg-success' : 'bg-danger'} fs-6">${log.log_type}</span></td>
                 <td><strong class="${isAlert ? 'text-danger' : 'text-dark'}">${studentName}</strong></td>
                 <td><span class="badge bg-light text-dark border border-secondary">${log.roll_number || log.student_id || 'N/A'}</span></td>
@@ -882,13 +885,22 @@
               let matchConfidence = '95.0';
               let isCoveredFace = false;
 
-              // Check 1: Covered Face / Mask / Hand Detection
+              // Check 1: Covered Face / Mask / Hand / Landmark Geometry Verification
               const points = landmarks ? (landmarks.positions || []) : [];
-              if (points.length < 68) {
+              if (!points || points.length < 68) {
                 isCoveredFace = true;
+              } else {
+                const noseTip = points[30];
+                const mouthBottom = points[57] || points[62] || points[51];
+                if (noseTip && mouthBottom && box.height > 0) {
+                  const mouthHeight = Math.hypot(noseTip.x - mouthBottom.x, noseTip.y - mouthBottom.y);
+                  if ((mouthHeight / box.height) < 0.08) {
+                    isCoveredFace = true;
+                  }
+                }
               }
 
-              // Check 2: Compute Euclidean Distance against enrolled descriptors
+              // Check 2: Compute Euclidean Distance against enrolled 128D descriptors
               let minDistance = Infinity;
               for (const item of enrolledDescriptorsList) {
                 const descriptors = item.descriptors || [];
@@ -903,8 +915,11 @@
                 }
               }
 
-              if (!isCoveredFace && minDistance < 0.65 && matchedStudent) {
-                matchConfidence = Math.min(99.9, Math.max(75.0, (1 - minDistance) * 100)).toFixed(1);
+              // Strict threshold for genuine authentic face match
+              const isAuthenticMatch = !isCoveredFace && minDistance < 0.48 && matchedStudent;
+
+              if (isAuthenticMatch) {
+                matchConfidence = Math.min(99.9, Math.max(82.0, (1 - minDistance) * 100)).toFixed(1);
 
                 // Draw Bright Green Bounding Box for Authorized Student
                 ctx.lineWidth = 4;
@@ -921,8 +936,10 @@
                 triggerStudentGateLog(matchedStudent, type, matchConfidence);
               } else {
                 // Determine bypass alert classification
-                const alertLabel = isCoveredFace ? `⚠️ COVERED FACE / MASK DETECTED` : `❌ UNKNOWN / TAILGATING PERSON`;
-                const alertType = isCoveredFace ? 'FACE_HIDDEN' : 'UNKNOWN';
+                const alertLabel = (isCoveredFace || (minDistance >= 0.48 && minDistance <= 0.65)) 
+                  ? `⚠️ COVERED FACE / MASK DETECTED` 
+                  : `❌ UNKNOWN / TAILGATING PERSON`;
+                const alertType = (isCoveredFace || (minDistance >= 0.48 && minDistance <= 0.65)) ? 'FACE_HIDDEN' : 'UNKNOWN';
 
                 // Draw Red Bounding Box for Security Violation
                 ctx.lineWidth = 4;
@@ -930,7 +947,7 @@
                 ctx.strokeRect(box.x, box.y, box.width, box.height);
 
                 ctx.fillStyle = '#ef4444';
-                ctx.fillRect(box.x, Math.max(0, box.y - 32), Math.max(240, box.width), 32);
+                ctx.fillRect(box.x, Math.max(0, box.y - 32), Math.max(250, box.width), 32);
                 ctx.fillStyle = '#ffffff';
                 ctx.font = 'bold 14px Inter, sans-serif';
                 ctx.fillText(alertLabel, box.x + 8, Math.max(20, box.y - 10));
